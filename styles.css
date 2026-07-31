@@ -1,0 +1,2400 @@
+/*
+ * Arrow shapes adapted from syabro/neat-annotations (MIT).
+ * See THIRD_PARTY_NOTICES.md in this plugin directory.
+ */
+
+@font-face {
+  font-family: "Crisp Annotations Shantell";
+  src: url("assets/ShantellSans-Variable.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 300 800;
+  font-display: swap;
+}
+
+@property --crisp-ann-color {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #6b7280;
+}
+
+@property --crisp-ann-editor-color {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #6b7280;
+}
+
+.crisp-ann {
+  --crisp-ann-color: var(--text-muted);
+  --crisp-ann-mark: color-mix(in srgb, var(--crisp-ann-color) 12%, transparent);
+  --crisp-ann-handwritten-font: "Crisp Annotations Shantell", "Shantell Sans", "Segoe Print", "Bradley Hand", "Kaiti SC", "STKaiti", "KaiTi", "楷体", cursive;
+  --crisp-ann-font: var(--crisp-ann-font-override, var(--crisp-ann-handwritten-font));
+  --crisp-ann-target-gap: 5px;
+  --crisp-ann-label-gap: 6px;
+  --crisp-ann-lower-label-gap: -4px;
+  --crisp-ann-label-max-width: 170px;
+  --crisp-ann-arrow-x: 0px;
+  --crisp-ann-text-x: 0px;
+  --crisp-ann-arrow-y: 0px;
+  --crisp-ann-text-y: 5px;
+  --crisp-ann-rotate: -4deg;
+
+  position: relative;
+  z-index: 1;
+  display: inline-block;
+  overflow: visible;
+  line-height: inherit;
+}
+
+.markdown-rendered .crisp-ann__target,
+.markdown-preview-view .crisp-ann__target {
+  -webkit-box-decoration-break: slice;
+  box-decoration-break: slice;
+  border-radius: 3px;
+  background: var(--crisp-ann-mark) !important;
+  box-shadow:
+    -0.3em 0 0 0 var(--crisp-ann-mark),
+    0.3em 0 0 0 var(--crisp-ann-mark);
+  padding: 0 0.05em !important;
+  color: inherit !important;
+}
+
+.markdown-rendered .crisp-ann--no-mark .crisp-ann__target,
+.markdown-preview-view .crisp-ann--no-mark .crisp-ann__target {
+  background: transparent !important;
+  box-shadow: none;
+}
+
+.crisp-ann__label {
+  position: absolute;
+  z-index: 4;
+  width: max-content;
+  max-width: var(--crisp-ann-label-max-width);
+  transform: rotate(var(--crisp-ann-rotate));
+  color: var(--crisp-ann-color);
+  font-weight: 400;
+  font-size: 0.95rem;
+  font-family: var(--crisp-ann-font);
+  line-height: 1.05;
+  white-space: normal;
+  opacity: 0.92;
+  pointer-events: none;
+}
+
+.crisp-ann::before {
+  position: absolute;
+  z-index: 3;
+  width: 46px;
+  height: 38px;
+  transform-origin: 50% 50%;
+  background: var(--crisp-ann-color);
+  content: "";
+  opacity: 0.9;
+  pointer-events: none;
+  -webkit-mask: var(--_crisp-ann-arrow-mask) center / contain no-repeat;
+  mask: var(--_crisp-ann-arrow-mask) center / contain no-repeat;
+}
+
+.crisp-ann--amber {
+  --crisp-ann-color: #b8751a;
+  --crisp-ann-mark: color-mix(in srgb, #ffb000 15%, transparent);
+}
+
+.crisp-ann--orange {
+  --crisp-ann-color: #fc9445;
+  --crisp-ann-mark: color-mix(in srgb, #fc9445 18%, transparent);
+}
+
+.crisp-ann--blue {
+  --crisp-ann-color: #3b72c4;
+}
+
+.crisp-ann--green {
+  --crisp-ann-color: #2f8f5b;
+}
+
+.crisp-ann--red {
+  --crisp-ann-color: #c45a38;
+}
+
+.crisp-ann--purple {
+  --crisp-ann-color: #8657c8;
+}
+
+.crisp-ann--rainbow {
+  --crisp-ann-color: #ff1493;
+}
+
+.crisp-ann--custom {
+  --crisp-ann-color: var(--crisp-ann-custom-color, #3b82f6);
+}
+
+.theme-dark .crisp-ann--neutral {
+  --crisp-ann-color: #b8b8bd;
+}
+
+.theme-dark .crisp-ann--amber {
+  --crisp-ann-color: #f0b45a;
+}
+
+.theme-dark .crisp-ann--orange {
+  --crisp-ann-color: #fdae6b;
+}
+
+.theme-dark .crisp-ann--blue {
+  --crisp-ann-color: #78a9ef;
+}
+
+.theme-dark .crisp-ann--green {
+  --crisp-ann-color: #67c792;
+}
+
+.theme-dark .crisp-ann--red {
+  --crisp-ann-color: #ee8a6e;
+}
+
+.theme-dark .crisp-ann--purple {
+  --crisp-ann-color: #b998ef;
+}
+
+.theme-dark .crisp-ann--rainbow {
+  --crisp-ann-color: #ff5aad;
+}
+
+/* --------------------------------------------------------------------------
+ * Color Theme Presets (Morandi Muted, Kindle Paper, Cyberpunk Neon)
+ * -------------------------------------------------------------------------- */
+[data-crisp-ann-theme="morandi"] .crisp-ann--neutral { --crisp-ann-color: #7d8597; }
+[data-crisp-ann-theme="morandi"] .crisp-ann--amber { --crisp-ann-color: #a67c52; --crisp-ann-mark: color-mix(in srgb, #a67c52 18%, transparent); }
+[data-crisp-ann-theme="morandi"] .crisp-ann--orange { --crisp-ann-color: #d9822b; }
+[data-crisp-ann-theme="morandi"] .crisp-ann--blue { --crisp-ann-color: #5b7b9a; }
+[data-crisp-ann-theme="morandi"] .crisp-ann--green { --crisp-ann-color: #5e8b72; }
+[data-crisp-ann-theme="morandi"] .crisp-ann--red { --crisp-ann-color: #a45a52; }
+[data-crisp-ann-theme="morandi"] .crisp-ann--purple { --crisp-ann-color: #816d9b; }
+
+[data-crisp-ann-theme="kindle"] .crisp-ann--neutral { --crisp-ann-color: #4a4a4a; }
+[data-crisp-ann-theme="kindle"] .crisp-ann--amber { --crisp-ann-color: #8c5626; --crisp-ann-mark: color-mix(in srgb, #8c5626 18%, transparent); }
+[data-crisp-ann-theme="kindle"] .crisp-ann--orange { --crisp-ann-color: #b35900; }
+[data-crisp-ann-theme="kindle"] .crisp-ann--blue { --crisp-ann-color: #2b5278; }
+[data-crisp-ann-theme="kindle"] .crisp-ann--green { --crisp-ann-color: #276043; }
+[data-crisp-ann-theme="kindle"] .crisp-ann--red { --crisp-ann-color: #8b2626; }
+[data-crisp-ann-theme="kindle"] .crisp-ann--purple { --crisp-ann-color: #583a7a; }
+
+[data-crisp-ann-theme="cyberpunk"] .crisp-ann--neutral { --crisp-ann-color: #94a3b8; }
+[data-crisp-ann-theme="cyberpunk"] .crisp-ann--amber { --crisp-ann-color: #f59e0b; --crisp-ann-mark: color-mix(in srgb, #f59e0b 22%, transparent); }
+[data-crisp-ann-theme="cyberpunk"] .crisp-ann--orange { --crisp-ann-color: #f97316; }
+[data-crisp-ann-theme="cyberpunk"] .crisp-ann--blue { --crisp-ann-color: #06b6d4; }
+[data-crisp-ann-theme="cyberpunk"] .crisp-ann--green { --crisp-ann-color: #10b981; }
+[data-crisp-ann-theme="cyberpunk"] .crisp-ann--red { --crisp-ann-color: #f43f5e; }
+[data-crisp-ann-theme="cyberpunk"] .crisp-ann--purple { --crisp-ann-color: #a855f7; }
+
+/* Label below, arrow points upward. */
+.crisp-ann--bottom::before {
+  top: calc(100% + var(--crisp-ann-target-gap) - 4px + var(--crisp-ann-arrow-y));
+  left: calc(50% - 23px + var(--crisp-ann-arrow-x));
+  --_crisp-ann-arrow-mask: var(--crisp-ann-arrow-mask-bottom, url("data:image/svg+xml,%3Csvg width='46' height='38' viewBox='0 0 46 38' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M23 35 C22 26 22 15 23 4' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round'/%3E%3Cpath d='M17 10 L23 3 L29 10' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"));
+}
+
+.crisp-ann--bottom > .crisp-ann__label {
+  top: calc(100% + var(--crisp-ann-target-gap) + 31px + var(--crisp-ann-lower-label-gap) + var(--crisp-ann-text-y));
+  left: calc(50% + var(--crisp-ann-text-x));
+  transform: translateX(-50%) rotate(var(--crisp-ann-rotate));
+}
+
+.crisp-ann--bottom-left::before {
+  top: calc(100% + var(--crisp-ann-target-gap) - 6px + var(--crisp-ann-arrow-y));
+  left: calc(50% - 40px + var(--crisp-ann-arrow-x));
+  transform: translateX(-10%);
+  --_crisp-ann-arrow-mask: var(--crisp-ann-arrow-mask-bottom-left, url("data:image/svg+xml,%3Csvg width='46' height='38' viewBox='0 0 46 38' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M6 32 C16 30 28 18 40 6' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round'/%3E%3Cpath d='M30 10 L40 6 L36 16' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"));
+}
+
+.crisp-ann--bottom-left > .crisp-ann__label {
+  top: calc(100% + var(--crisp-ann-target-gap) + 26px + var(--crisp-ann-lower-label-gap) + var(--crisp-ann-text-y));
+  left: calc(50% - 34px + var(--crisp-ann-text-x));
+  transform: translateX(-60%) rotate(var(--crisp-ann-rotate));
+}
+
+.crisp-ann--left::before {
+  top: calc(50% - 19px + var(--crisp-ann-arrow-y));
+  left: calc(-1 * var(--crisp-ann-target-gap) - 43px + var(--crisp-ann-arrow-x));
+  --_crisp-ann-arrow-mask: var(--crisp-ann-arrow-mask-left, url("data:image/svg+xml,%3Csvg width='46' height='38' viewBox='0 0 46 38' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M4 19 C15 18 31 18 43 19' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round'/%3E%3Cpath d='M36 13 L43 19 L36 25' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"));
+}
+
+.crisp-ann--left > .crisp-ann__label {
+  top: calc(50% - 5px + var(--crisp-ann-text-y));
+  right: calc(100% + var(--crisp-ann-target-gap) + 39px + var(--crisp-ann-label-gap) - var(--crisp-ann-text-x));
+  transform: translateY(-50%) rotate(var(--crisp-ann-rotate));
+}
+
+.crisp-ann--top-left::before {
+  top: calc(-1 * var(--crisp-ann-target-gap) - 32px + var(--crisp-ann-arrow-y));
+  left: calc(50% - 40px + var(--crisp-ann-arrow-x));
+  transform: translateX(-10%);
+  --_crisp-ann-arrow-mask: var(--crisp-ann-arrow-mask-top-left, url("data:image/svg+xml,%3Csvg width='46' height='38' viewBox='0 0 46 38' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M6 6 C16 8 28 20 40 32' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round'/%3E%3Cpath d='M36 22 L40 32 L30 28' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"));
+}
+
+.crisp-ann--top-left > .crisp-ann__label {
+  bottom: calc(100% + var(--crisp-ann-target-gap) + 26px + var(--crisp-ann-label-gap) - var(--crisp-ann-text-y));
+  left: calc(50% - 34px + var(--crisp-ann-text-x));
+  transform: translateX(-60%) rotate(var(--crisp-ann-rotate));
+}
+
+.crisp-ann--top::before {
+  top: calc(-1 * var(--crisp-ann-target-gap) - 35px + var(--crisp-ann-arrow-y));
+  left: calc(50% - 23px + var(--crisp-ann-arrow-x));
+  --_crisp-ann-arrow-mask: var(--crisp-ann-arrow-mask-top, url("data:image/svg+xml,%3Csvg width='46' height='38' viewBox='0 0 46 38' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M23 4 C22 13 22 24 23 35' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round'/%3E%3Cpath d='M17 29 L23 36 L29 29' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"));
+}
+
+.crisp-ann--top > .crisp-ann__label {
+  bottom: calc(100% + var(--crisp-ann-target-gap) + 31px + var(--crisp-ann-label-gap) - var(--crisp-ann-text-y));
+  left: calc(50% + var(--crisp-ann-text-x));
+  transform: translateX(-50%) rotate(var(--crisp-ann-rotate));
+}
+
+.crisp-ann--top-right::before {
+  top: calc(-1 * var(--crisp-ann-target-gap) - 32px + var(--crisp-ann-arrow-y));
+  left: calc(50% - 6px + var(--crisp-ann-arrow-x));
+  transform: translateX(10%);
+  --_crisp-ann-arrow-mask: var(--crisp-ann-arrow-mask-top-right, url("data:image/svg+xml,%3Csvg width='46' height='38' viewBox='0 0 46 38' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M40 6 C30 8 18 20 6 32' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round'/%3E%3Cpath d='M10 22 L6 32 L16 28' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"));
+}
+
+.crisp-ann--top-right > .crisp-ann__label {
+  bottom: calc(100% + var(--crisp-ann-target-gap) + 26px + var(--crisp-ann-label-gap) - var(--crisp-ann-text-y));
+  left: calc(50% + 34px + var(--crisp-ann-text-x));
+  transform: translateX(-40%) rotate(var(--crisp-ann-rotate));
+}
+
+.crisp-ann--right::before {
+  top: calc(50% - 19px + var(--crisp-ann-arrow-y));
+  left: calc(100% + var(--crisp-ann-target-gap) - 3px + var(--crisp-ann-arrow-x));
+  --_crisp-ann-arrow-mask: var(--crisp-ann-arrow-mask-right, url("data:image/svg+xml,%3Csvg width='46' height='38' viewBox='0 0 46 38' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M43 19 C32 18 15 18 3 19' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round'/%3E%3Cpath d='M10 13 L3 19 L10 25' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"));
+}
+
+.crisp-ann--right > .crisp-ann__label {
+  top: calc(50% - 5px + var(--crisp-ann-text-y));
+  left: calc(100% + var(--crisp-ann-target-gap) + 40px + var(--crisp-ann-label-gap) + var(--crisp-ann-text-x));
+  transform: translateY(-50%) rotate(var(--crisp-ann-rotate));
+}
+
+.crisp-ann--bottom-right::before {
+  top: calc(100% + var(--crisp-ann-target-gap) - 6px + var(--crisp-ann-arrow-y));
+  left: calc(50% - 6px + var(--crisp-ann-arrow-x));
+  transform: translateX(10%);
+  --_crisp-ann-arrow-mask: var(--crisp-ann-arrow-mask-bottom-right, url("data:image/svg+xml,%3Csvg width='46' height='38' viewBox='0 0 46 38' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M40 32 C30 30 18 18 6 6' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round'/%3E%3Cpath d='M16 10 L6 6 L10 16' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"));
+}
+
+.crisp-ann--bottom-right > .crisp-ann__label {
+  top: calc(100% + var(--crisp-ann-target-gap) + 26px + var(--crisp-ann-lower-label-gap) + var(--crisp-ann-text-y));
+  left: calc(50% + 34px + var(--crisp-ann-text-x));
+  transform: translateX(-40%) rotate(var(--crisp-ann-rotate));
+}
+
+.crisp-ann-block--space-top {
+  padding-top: 3.15rem;
+}
+
+.crisp-ann-block--space-bottom {
+  padding-bottom: 3.15rem;
+}
+
+.crisp-ann-margin-sizer {
+  position: relative;
+  overflow: visible;
+}
+
+.crisp-ann-margin-connectors {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 3;
+  width: 1px;
+  height: 1px;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.crisp-ann-margin-item {
+  position: absolute;
+  z-index: 4;
+  display: block;
+  box-sizing: border-box;
+  color: var(--crisp-ann-color);
+  line-height: 1.18;
+  text-align: left;
+  text-wrap: balance;
+}
+
+.crisp-ann__label.crisp-ann-margin-item {
+  max-width: none;
+  color: var(--crisp-ann-color);
+  line-height: 1.18;
+}
+
+.crisp-ann-margin-item--left {
+  text-align: right;
+}
+
+.crisp-ann--margin::before {
+  display: none;
+}
+
+.crisp-ann-margin-connector {
+  color: var(--crisp-ann-color);
+}
+
+.crisp-ann-margin-connector__shaft,
+.crisp-ann-margin-connector__head {
+  fill: none;
+  stroke: var(--crisp-ann-color);
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.crisp-ann-margin-connector__shaft {
+  opacity: 0.66;
+}
+
+.crisp-ann-margin-connector__head {
+  opacity: 0.92;
+}
+
+.crisp-ann-margin-connector--dashed .crisp-ann-margin-connector__shaft {
+  stroke-dasharray: 7 6;
+}
+
+.crisp-ann-editor-target {
+  --crisp-ann-editor-color: var(--text-muted);
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--crisp-ann-editor-color) 13%, transparent) !important;
+  box-shadow:
+    -0.16em 0 0 color-mix(in srgb, var(--crisp-ann-editor-color) 13%, transparent),
+    0.16em 0 0 color-mix(in srgb, var(--crisp-ann-editor-color) 13%, transparent);
+}
+
+.crisp-ann-editor-target--amber,
+.crisp-ann-editor-badge--amber {
+  --crisp-ann-editor-color: #b8751a;
+}
+
+.crisp-ann-editor-target--orange,
+.crisp-ann-editor-badge--orange {
+  --crisp-ann-editor-color: #fc9445;
+}
+
+.crisp-ann-editor-target--blue,
+.crisp-ann-editor-badge--blue {
+  --crisp-ann-editor-color: #3b72c4;
+}
+
+.crisp-ann-editor-target--green,
+.crisp-ann-editor-badge--green {
+  --crisp-ann-editor-color: #2f8f5b;
+}
+
+.crisp-ann-editor-target--red,
+.crisp-ann-editor-badge--red {
+  --crisp-ann-editor-color: #c45a38;
+}
+
+.crisp-ann-editor-target--purple,
+.crisp-ann-editor-badge--purple {
+  --crisp-ann-editor-color: #8657c8;
+}
+
+.crisp-ann-editor-target--rainbow,
+.crisp-ann-editor-badge--rainbow {
+  --crisp-ann-editor-color: #ff1493;
+}
+
+.crisp-ann-editor-target--custom,
+.crisp-ann-editor-badge--custom {
+  --crisp-ann-editor-color: var(--crisp-ann-custom-color, #3b82f6);
+}
+
+.crisp-ann-editor-target--no-mark {
+  background: transparent !important;
+  box-shadow: none;
+}
+
+.crisp-ann-editor-badge {
+  --crisp-ann-editor-color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  margin-inline: 0.3em;
+  border: 1px solid color-mix(in srgb, var(--crisp-ann-editor-color) 28%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--crisp-ann-editor-color) 9%, var(--background-primary));
+  padding: 0.08em 0.48em;
+  max-width: min(18rem, 42vw);
+  color: var(--crisp-ann-editor-color);
+  font-size: 0.78em;
+  font-family: var(--font-interface);
+  line-height: 1.35;
+  vertical-align: 0.08em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Dark mode: boost editor badge contrast for readability */
+.theme-dark .crisp-ann-editor-badge {
+  border-color: color-mix(in srgb, var(--crisp-ann-editor-color) 38%, transparent);
+  background: color-mix(in srgb, var(--crisp-ann-editor-color) 14%, var(--background-primary));
+}
+
+.theme-dark .crisp-ann-editor-target {
+  background: color-mix(in srgb, var(--crisp-ann-editor-color) 18%, transparent) !important;
+  box-shadow:
+    -0.16em 0 0 color-mix(in srgb, var(--crisp-ann-editor-color) 18%, transparent),
+    0.16em 0 0 color-mix(in srgb, var(--crisp-ann-editor-color) 18%, transparent);
+}
+
+.crisp-ann-dialog {
+  --crisp-dialog-accent: #d88745;
+  --crisp-dialog-accent-hover: #c97938;
+  --crisp-dialog-radius: 14px;
+  --crisp-dialog-shell-radius: 22px;
+  --crisp-dialog-surface: color-mix(
+    in srgb,
+    var(--background-primary) 96%,
+    transparent
+  );
+  --crisp-dialog-field-bg: color-mix(
+    in srgb,
+    var(--background-primary) 92%,
+    var(--background-secondary)
+  );
+  --crisp-dialog-muted-bg: color-mix(
+    in srgb,
+    var(--background-secondary) 72%,
+    var(--background-primary)
+  );
+  --crisp-dialog-divider: color-mix(
+    in srgb,
+    var(--background-modifier-border) 82%,
+    transparent
+  );
+  --crisp-dialog-soft-shadow: 0 22px 60px rgb(0 0 0 / 14%);
+
+  display: flex !important;
+  flex-direction: column !important;
+  width: min(640px, calc(100vw - 40px));
+  max-width: 640px;
+  max-height: min(calc(100vh - 40px), 720px) !important;
+  max-height: min(calc(100dvh - 40px), 720px) !important;
+  overflow: hidden !important;
+  border: 1px solid var(--crisp-dialog-divider);
+  border-radius: var(--crisp-dialog-shell-radius);
+  background: var(--crisp-dialog-surface);
+  box-shadow: var(--crisp-dialog-soft-shadow);
+  padding: 0;
+  backdrop-filter: blur(18px) saturate(1.08);
+  -webkit-backdrop-filter: blur(18px) saturate(1.08);
+}
+
+.theme-dark .crisp-ann-dialog {
+  --crisp-dialog-accent: #e39a60;
+  --crisp-dialog-accent-hover: #eda66c;
+  --crisp-dialog-surface: color-mix(
+    in srgb,
+    var(--background-primary) 94%,
+    transparent
+  );
+  --crisp-dialog-field-bg: color-mix(
+    in srgb,
+    var(--background-primary) 86%,
+    var(--background-secondary)
+  );
+  --crisp-dialog-muted-bg: color-mix(
+    in srgb,
+    var(--background-secondary) 78%,
+    var(--background-primary)
+  );
+  --crisp-dialog-divider: color-mix(
+    in srgb,
+    var(--background-modifier-border) 92%,
+    transparent
+  );
+  --crisp-dialog-soft-shadow: 0 26px 72px rgb(0 0 0 / 38%);
+}
+
+.crisp-ann-dialog .modal-title {
+  flex-shrink: 0;
+  margin: 0;
+  border-bottom: 0;
+  padding: 1.2rem 1.5rem 0.55rem;
+  color: var(--text-normal);
+  font-weight: 700;
+  font-size: 1.38rem;
+  line-height: 1.2;
+  letter-spacing: -0.025em;
+}
+
+.crisp-ann-dialog .modal-close-button {
+  top: 1.05rem;
+  right: 1.2rem;
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  color: var(--text-muted);
+  transition:
+    background-color 120ms ease-out,
+    color 120ms ease-out;
+}
+
+.crisp-ann-dialog .modal-close-button:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+
+.crisp-ann-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  padding: 0.9rem 1.5rem 0;
+  flex: 1 1 auto;
+  overflow-y: auto !important;
+  overflow-x: hidden;
+  max-height: 100%;
+  scroll-behavior: smooth;
+  overscroll-behavior: contain;
+}
+
+.crisp-ann-modal::-webkit-scrollbar {
+  width: 6px;
+}
+
+.crisp-ann-modal::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--text-muted) 30%, transparent);
+  border-radius: 3px;
+}
+
+.crisp-ann-modal::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--text-muted) 55%, transparent);
+}
+
+.crisp-ann-modal .setting-item {
+  border: 0 !important;
+  padding: 0;
+}
+
+.crisp-ann-modal .setting-item-info {
+  min-width: 0;
+}
+
+.crisp-ann-modal .setting-item-name {
+  color: var(--text-normal);
+  font-weight: 620;
+  font-size: 0.98rem;
+  line-height: 1.25;
+  letter-spacing: -0.012em;
+}
+
+.crisp-ann-modal .setting-item-description {
+  margin-top: 0.18rem;
+  color: var(--text-muted);
+  font-size: 0.84rem;
+  line-height: 1.42;
+}
+
+.crisp-ann-modal__field {
+  display: block;
+  border-radius: 0;
+  background: transparent;
+  padding: 0 !important;
+}
+
+.crisp-ann-modal__field .setting-item-info {
+  margin-bottom: 0.62rem;
+}
+
+.crisp-ann-modal__field .setting-item-control {
+  width: 100%;
+  margin-left: 0;
+}
+
+.crisp-ann-modal__field select {
+  width: 100%;
+  min-height: 3rem;
+  border: 1px solid var(--crisp-dialog-divider);
+  border-radius: 12px;
+  background-color: var(--crisp-dialog-field-bg);
+  box-shadow: none;
+  padding: 0 2.65rem 0 0.95rem;
+  color: var(--text-normal);
+  font-size: 0.98rem;
+  transition:
+    border-color 120ms ease-out,
+    box-shadow 120ms ease-out,
+    background-color 120ms ease-out;
+}
+
+.crisp-ann-modal__field select:hover {
+  border-color: var(--background-modifier-border-hover);
+  background-color: var(--background-primary);
+}
+
+.crisp-ann-modal__field select:focus {
+  border-color: var(--crisp-dialog-accent);
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(
+    in srgb,
+    var(--crisp-dialog-accent) 10%,
+    transparent
+  );
+}
+
+.crisp-ann-modal__field--note {
+  background: transparent;
+  padding: 0 !important;
+}
+
+.crisp-ann-modal__note {
+  width: 100%;
+  min-height: 4.5rem;
+  border: 1px solid var(--crisp-dialog-divider);
+  border-radius: 13px;
+  background: var(--crisp-dialog-field-bg);
+  box-shadow: none;
+  padding: 0.8rem 0.95rem;
+  color: var(--text-normal);
+  font-size: 0.96rem;
+  line-height: 1.45;
+  resize: vertical;
+  transition:
+    border-color 120ms ease-out,
+    box-shadow 120ms ease-out,
+    background-color 120ms ease-out;
+}
+
+.crisp-ann-modal__note::placeholder {
+  color: var(--text-faint);
+}
+
+.crisp-ann-modal__note:hover {
+  border-color: var(--background-modifier-border-hover);
+  background: var(--background-primary);
+}
+
+.crisp-ann-modal__note:focus {
+  border-color: var(--crisp-dialog-accent);
+  outline: none;
+  background: var(--background-primary);
+  box-shadow: 0 0 0 3px color-mix(
+    in srgb,
+    var(--crisp-dialog-accent) 10%,
+    transparent
+  );
+}
+
+.crisp-ann-modal__error {
+  display: none;
+  margin-top: -0.65rem;
+  padding-inline: 0.15rem;
+  color: var(--text-error);
+  font-size: var(--font-ui-smaller);
+}
+
+.crisp-ann-modal__error--visible {
+  display: block;
+}
+
+.crisp-ann-modal__choices {
+  display: grid;
+  grid-template-columns: minmax(200px, 0.8fr) minmax(0, 1.2fr);
+  align-items: stretch;
+  gap: 1rem;
+  margin: 0;
+}
+
+.crisp-ann-modal__choices .setting-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  height: 100%;
+}
+
+.crisp-ann-modal__choices .setting-item-description {
+  min-height: 2.2em;
+}
+
+.crisp-ann-modal__choices .setting-item-control {
+  width: 100%;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  margin-top: 0.35rem;
+}
+
+/* Color Swatches Container & Placement Container Symmetry */
+.crisp-ann-modal__color-container,
+.crisp-ann-modal__compass-container {
+  width: 100%;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.45rem;
+  margin-top: 0.35rem;
+  border-radius: 11px;
+  background: color-mix(
+    in srgb,
+    var(--crisp-dialog-muted-bg) 66%,
+    transparent
+  );
+  border: 0;
+  box-sizing: border-box;
+}
+
+.crisp-ann-modal__color-swatches {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 31px);
+  gap: 0.35rem;
+  padding: 0.35rem;
+  border-radius: 8px;
+  background: var(--background-primary);
+  border: 0;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.crisp-ann-modal__color-swatch {
+  appearance: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  padding: 0 0.3rem;
+  border-radius: 6px;
+  border: 1px solid var(--background-modifier-border);
+  background: var(--background-primary);
+  color: var(--text-normal);
+  font-size: 0.8rem;
+  font-family: inherit;
+  line-height: 1.2;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    color 0.15s ease;
+}
+
+.crisp-ann-modal__color-swatch:hover {
+  background: var(--background-modifier-hover);
+  border-color: var(--interactive-hover);
+}
+
+.crisp-ann-modal__color-swatch.is-selected {
+  border-color: var(--interactive-accent);
+  background: var(--background-primary);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--interactive-accent) 35%, transparent);
+  font-weight: 600;
+}
+
+.crisp-ann-modal__color-dot {
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 50%;
+  display: inline-block;
+  border: 1px solid rgb(0 0 0 / 15%);
+  flex-shrink: 0;
+}
+
+.crisp-ann-modal__color-dot[data-color="neutral"] { background: #6b7280; }
+.crisp-ann-modal__color-dot[data-color="amber"] { background: #b8751a; }
+.crisp-ann-modal__color-dot[data-color="orange"] { background: #FC9445; }
+.crisp-ann-modal__color-dot[data-color="blue"] { background: #3b72c4; }
+.crisp-ann-modal__color-dot[data-color="green"] { background: #2f8f5b; }
+.crisp-ann-modal__color-dot[data-color="red"] { background: #c45a38; }
+.crisp-ann-modal__color-dot[data-color="purple"] { background: #8657c8; }
+.crisp-ann-modal__color-dot[data-color="rainbow"] { background: linear-gradient(135deg, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #8b00ff); }
+.crisp-ann-modal__color-dot[data-color="custom"] { background: var(--crisp-ann-custom-color, #3b82f6); }
+
+.crisp-ann-modal__compass-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 40px);
+  grid-template-rows: repeat(3, 31px);
+  gap: 0.35rem;
+  padding: 0.35rem;
+  border-radius: 8px;
+  background: var(--background-primary);
+  border: 0;
+}
+
+.crisp-ann-modal__compass-btn {
+  appearance: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  padding: 0;
+  border-radius: 6px;
+  border: 1px solid var(--background-modifier-border);
+  background: var(--background-primary);
+  box-shadow: none;
+  color: var(--text-muted);
+  font: inherit;
+  cursor: pointer;
+  user-select: none;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    color 0.15s ease,
+    transform 0.15s ease;
+}
+
+.crisp-ann-modal__compass-btn:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+  border-color: var(--interactive-hover);
+}
+
+.crisp-ann-modal__compass-btn.is-selected {
+  border-color: var(--interactive-accent);
+  background: var(--interactive-accent);
+  color: var(--text-on-accent, #ffffff);
+  font-weight: 700;
+  box-shadow: 0 1px 4px color-mix(in srgb, var(--interactive-accent) 40%, transparent);
+}
+
+.crisp-ann-modal__compass-btn--center {
+  background: transparent;
+  color: var(--text-faint);
+  cursor: default;
+  border-style: dashed;
+  border-color: var(--background-modifier-border);
+}
+
+.crisp-ann-modal__compass-btn--center:hover {
+  transform: none;
+  background: transparent;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .crisp-ann-modal__compass-btn:not(.crisp-ann-modal__compass-btn--center):hover {
+    transform: scale(1.04);
+  }
+}
+
+.crisp-ann-modal__compass-icon {
+  font-size: 1.15rem;
+  line-height: 1;
+  font-weight: 500;
+}
+
+.crisp-ann-modal__compass-target {
+  font-size: 0.62rem;
+  white-space: nowrap;
+  letter-spacing: -0.2px;
+  opacity: 0.7;
+}
+
+.crisp-ann-modal__highlight {
+  align-items: center;
+  min-height: 3.7rem;
+  border: 0 !important;
+  border-radius: 12px;
+  background: color-mix(
+    in srgb,
+    var(--crisp-dialog-muted-bg) 58%,
+    transparent
+  );
+  padding: 0.65rem 0.8rem !important;
+}
+
+.crisp-ann-modal__highlight .setting-item-control {
+  margin-left: 1rem;
+}
+
+.crisp-ann-modal__highlight .checkbox-container.is-enabled {
+  background-color: var(--crisp-dialog-accent);
+}
+
+.crisp-ann-modal__highlight .checkbox-container.is-enabled:hover {
+  background-color: var(--crisp-dialog-accent-hover);
+}
+
+.crisp-ann-modal__appearance {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  border-radius: 12px;
+  background: color-mix(
+    in srgb,
+    var(--crisp-dialog-muted-bg) 50%,
+    transparent
+  );
+  padding: 0.7rem 0.8rem !important;
+}
+
+.crisp-ann-modal__appearance .setting-item-info {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.crisp-ann-modal__appearance .setting-item-control {
+  grid-column: 2;
+  grid-row: 1;
+  align-self: start;
+  margin: -0.18rem 0 0 1rem;
+}
+
+.crisp-ann-modal__appearance button {
+  min-height: auto;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 0.25rem 0;
+  color: color-mix(
+    in srgb,
+    var(--crisp-dialog-accent) 82%,
+    var(--text-muted)
+  );
+  font-size: 0.84rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.crisp-ann-modal__appearance button::after {
+  content: " settings ↗";
+}
+
+.crisp-ann-modal__appearance button:hover {
+  background: transparent;
+  color: var(--crisp-dialog-accent-hover);
+  text-decoration: none;
+}
+
+.crisp-ann-modal__appearance-chips {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0;
+  margin-top: 0.72rem;
+  border: 1px solid var(--crisp-dialog-divider);
+  border-radius: 13px;
+  background: var(--crisp-dialog-muted-bg);
+  padding: 0.25rem;
+}
+
+.crisp-ann-modal__appearance-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  min-height: 2.45rem;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: transparent;
+  padding: 0.35rem 0.55rem;
+  color: var(--text-muted);
+  font-size: 0.86rem;
+  font-weight: 450;
+  line-height: 1.2;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.crisp-ann-modal__appearance-chip:first-child {
+  border-color: color-mix(
+    in srgb,
+    var(--background-modifier-border) 62%,
+    transparent
+  );
+  background: var(--background-primary);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 8%);
+  color: var(--text-normal);
+  font-weight: 620;
+}
+
+.crisp-ann-modal__appearance-hint {
+  display: none;
+}
+
+.crisp-ann-modal__footer {
+  position: static !important;
+  z-index: 20 !important;
+  margin: 0 !important;
+  justify-content: flex-end;
+  border-top: 0 !important;
+  background: transparent !important;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  padding: 0.25rem 0 1.25rem !important;
+  box-shadow: none;
+}
+
+.crisp-ann-modal__footer .setting-item-info {
+  display: none;
+}
+
+.crisp-ann-modal__footer .setting-item-control {
+  display: flex;
+  gap: 0.75rem;
+  margin-left: auto;
+}
+
+.crisp-ann-modal__footer button {
+  min-height: 2.65rem;
+  border: 1px solid var(--crisp-dialog-divider);
+  border-radius: 11px;
+  background: var(--background-primary);
+  box-shadow: none;
+  padding-inline: 1.25rem;
+  color: var(--text-normal);
+  font-weight: 600;
+  transition:
+    border-color 120ms ease-out,
+    background-color 120ms ease-out,
+    transform 80ms ease-out;
+}
+
+.crisp-ann-modal__footer button:hover {
+  border-color: var(--background-modifier-border-hover);
+  background: var(--background-modifier-hover);
+}
+
+.crisp-ann-modal__footer button:active {
+  transform: translateY(1px);
+}
+
+.crisp-ann-modal__footer button.mod-cta {
+  border-color: var(--crisp-dialog-accent);
+  background: var(--crisp-dialog-accent);
+  color: #fff;
+}
+
+/* ==========================================================================
+   Responsive Compact Scaling for Small Obsidian Windows / Viewports
+   ========================================================================== */
+@media (max-height: 740px) {
+  .crisp-ann-dialog {
+    max-height: min(calc(100vh - 20px), 640px) !important;
+    max-height: min(calc(100dvh - 20px), 640px) !important;
+  }
+
+  .crisp-ann-dialog .modal-title {
+    padding: 1.05rem 1.4rem 0.95rem;
+    font-size: 1.22rem;
+  }
+
+  .crisp-ann-modal {
+    gap: 0.55rem;
+    padding: 0.85rem 1.4rem 0;
+  }
+
+  .crisp-ann-modal__field--note .crisp-ann-modal__note {
+    min-height: 2.7rem;
+    padding: 0.55rem 0.75rem;
+  }
+
+  .crisp-ann-modal__compass-grid {
+    gap: 3px;
+    padding: 3px;
+  }
+
+  .crisp-ann-modal__compass-btn {
+    width: 2.15rem;
+    height: 2.15rem;
+  }
+
+  .crisp-ann-modal__color-swatches {
+    gap: 0.35rem;
+  }
+
+  .crisp-ann-modal__color-swatch {
+    padding: 0.25rem 0.55rem;
+    font-size: 0.82rem;
+  }
+
+  .crisp-ann-modal__appearance-chips {
+    margin-top: 0.4rem;
+    padding: 0.18rem;
+  }
+
+  .crisp-ann-modal__appearance-chip {
+    min-height: 2.1rem;
+    padding: 0.25rem 0.4rem;
+    font-size: 0.82rem;
+  }
+
+  .crisp-ann-modal__footer {
+    margin-left: -1.4rem !important;
+    margin-right: -1.4rem !important;
+    padding: 0.65rem 1.4rem !important;
+  }
+
+  .crisp-ann-modal__footer button {
+    min-height: 2.35rem;
+    padding-inline: 1rem;
+    font-size: 0.85rem;
+  }
+}
+
+@media (max-height: 580px) {
+  .crisp-ann-dialog {
+    max-height: calc(100vh - 12px) !important;
+    max-height: calc(100dvh - 12px) !important;
+  }
+
+  .crisp-ann-dialog .modal-title {
+    padding: 0.75rem 1.2rem 0.65rem;
+    font-size: 1.1rem;
+  }
+
+  .crisp-ann-modal {
+    gap: 0.35rem;
+    padding: 0.65rem 1.2rem 0;
+  }
+
+  .crisp-ann-modal__footer {
+    margin-left: -1.2rem !important;
+    margin-right: -1.2rem !important;
+    padding: 0.5rem 1.2rem !important;
+  }
+}
+
+.crisp-ann-modal__footer button.mod-cta:hover {
+  border-color: var(--crisp-dialog-accent-hover);
+  background: var(--crisp-dialog-accent-hover);
+}
+
+@media (max-width: 760px) {
+  .crisp-ann-dialog {
+    width: calc(100vw - 20px);
+    border-radius: 18px;
+  }
+
+  .crisp-ann-dialog .modal-title {
+    padding: 1.3rem 1.25rem 1.2rem;
+    font-size: 1.28rem;
+  }
+
+  .crisp-ann-dialog .modal-close-button {
+    top: 0.82rem;
+    right: 0.82rem;
+  }
+
+  .crisp-ann-modal {
+    gap: 1rem;
+    padding: 1.25rem 1.25rem 0;
+  }
+
+  .crisp-ann-modal__choice-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .crisp-ann-modal__footer {
+    margin-inline: -1.25rem;
+    padding: 0.9rem 1.25rem !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .crisp-ann-modal__appearance {
+    grid-template-columns: 1fr;
+  }
+
+  .crisp-ann-modal__appearance .setting-item-control {
+    grid-column: 1;
+    grid-row: 2;
+    justify-self: start;
+    margin: 0.35rem 0 0;
+  }
+
+  .crisp-ann-modal__appearance-chips {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .crisp-ann-modal__footer .setting-item-control {
+    width: 100%;
+  }
+
+  .crisp-ann-modal__footer button {
+    flex: 1;
+    padding-inline: 0.75rem;
+  }
+}
+
+.crisp-ann-settings-intro {
+  margin: 0.35rem 0 1.35rem;
+  max-width: 46rem;
+  color: var(--text-muted);
+  line-height: 1.55;
+}
+
+.crisp-ann-settings-heading {
+  margin-top: 1.35rem;
+}
+
+.crisp-ann-setting--hidden {
+  display: none;
+}
+
+.crisp-ann-setting-color-hex {
+  width: 7.5em;
+  font-family: var(--font-monospace);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .crisp-ann--rainbow,
+  .crisp-ann-editor-target--rainbow,
+  .crisp-ann-editor-badge--rainbow {
+    animation: crisp-ann-rainbow-cycle 8s linear infinite;
+  }
+}
+
+@keyframes crisp-ann-rainbow-cycle {
+  0%, 100% { --crisp-ann-color: #ff1493; --crisp-ann-editor-color: #ff1493; }
+  25% { --crisp-ann-color: #8657c8; --crisp-ann-editor-color: #8657c8; }
+  50% { --crisp-ann-color: #3b72c4; --crisp-ann-editor-color: #3b72c4; }
+  75% { --crisp-ann-color: #2f8f5b; --crisp-ann-editor-color: #2f8f5b; }
+}
+
+body.is-mobile .crisp-ann {
+  --crisp-ann-label-max-width: min(150px, 52vw);
+}
+
+body.is-mobile .crisp-ann-margin-item,
+body.is-mobile .crisp-ann-margin-connectors {
+  display: none;
+}
+
+body.is-mobile .crisp-ann::before {
+  top: calc(100% + var(--crisp-ann-target-gap) - 4px + var(--crisp-ann-arrow-y));
+  right: auto;
+  bottom: auto;
+  left: calc(50% - 23px + var(--crisp-ann-arrow-x));
+  transform: none;
+  --_crisp-ann-arrow-mask: var(--crisp-ann-arrow-mask-bottom, url("data:image/svg+xml,%3Csvg width='46' height='38' viewBox='0 0 46 38' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M23 35 C22 26 22 15 23 4' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round'/%3E%3Cpath d='M17 10 L23 3 L29 10' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"));
+}
+
+body.is-mobile .crisp-ann > .crisp-ann__label {
+  top: calc(100% + var(--crisp-ann-target-gap) + 31px + var(--crisp-ann-lower-label-gap) + var(--crisp-ann-text-y));
+  right: auto;
+  bottom: auto;
+  left: calc(50% + var(--crisp-ann-text-x));
+  transform: translateX(-50%) rotate(var(--crisp-ann-rotate));
+}
+
+body.is-mobile .crisp-ann-block,
+body.is-mobile .crisp-ann-block--space-bottom {
+  padding-bottom: 3.15rem;
+}
+
+body.is-mobile .crisp-ann-block--space-top {
+  padding-top: 0;
+}
+
+@media (max-width: 700px) {
+  .crisp-ann {
+    --crisp-ann-label-max-width: min(150px, 52vw);
+  }
+
+  .crisp-ann::before {
+    top: calc(100% + var(--crisp-ann-target-gap) - 4px + var(--crisp-ann-arrow-y));
+    right: auto;
+    bottom: auto;
+    left: calc(50% - 23px + var(--crisp-ann-arrow-x));
+    transform: none;
+    --_crisp-ann-arrow-mask: var(--crisp-ann-arrow-mask-bottom, url("data:image/svg+xml,%3Csvg width='46' height='38' viewBox='0 0 46 38' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M23 35 C22 26 22 15 23 4' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round'/%3E%3Cpath d='M17 10 L23 3 L29 10' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"));
+  }
+
+  .crisp-ann > .crisp-ann__label {
+    top: calc(100% + var(--crisp-ann-target-gap) + 31px + var(--crisp-ann-lower-label-gap) + var(--crisp-ann-text-y));
+    right: auto;
+    bottom: auto;
+    left: calc(50% + var(--crisp-ann-text-x));
+    transform: translateX(-50%) rotate(var(--crisp-ann-rotate));
+  }
+
+  .crisp-ann-block,
+  .crisp-ann-block--space-bottom {
+    padding-bottom: 3.15rem;
+  }
+
+  .crisp-ann-block--space-top {
+    padding-top: 0;
+  }
+}
+
+/* --------------------------------------------------------------------------
+ * Apple + Linear dialog compatibility pass
+ * Targets the plugin's actual SettingItem nesting and neutralizes theme
+ * typography/form overrides that prevented the intended layout from rendering.
+ * -------------------------------------------------------------------------- */
+
+.crisp-ann-dialog,
+.crisp-ann-dialog button,
+.crisp-ann-dialog select,
+.crisp-ann-dialog textarea {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+  box-sizing: border-box;
+}
+
+.theme-light .crisp-ann-dialog {
+  --crisp-dialog-surface: rgb(255 255 255 / 98%);
+  --crisp-dialog-field-bg: #ffffff;
+  --crisp-dialog-muted-bg: #f0efed;
+  --crisp-dialog-divider: rgb(31 31 31 / 13%);
+}
+
+.theme-dark .crisp-ann-dialog {
+  --crisp-dialog-field-bg: color-mix(
+    in srgb,
+    var(--background-primary) 82%,
+    var(--background-secondary)
+  );
+}
+
+.crisp-ann-dialog .modal-title {
+  padding: 20px 24px 7px;
+  font-size: 22px;
+  line-height: 1.2;
+}
+
+.crisp-ann-dialog .modal-close-button {
+  top: 18px;
+  right: 22px;
+}
+
+.crisp-ann-modal {
+  gap: 14px;
+  padding: 12px 24px 0;
+}
+
+.crisp-ann-modal .setting-item-name {
+  font-size: 16px;
+  line-height: 1.25;
+}
+
+.crisp-ann-modal .setting-item-description {
+  margin-top: 4px;
+  font-size: 14px;
+  line-height: 1.45;
+  letter-spacing: 0;
+}
+
+.theme-light .crisp-ann-modal__note,
+.theme-light .crisp-ann-modal__field select {
+  background: #ffffff !important;
+}
+
+.crisp-ann-modal__note {
+  min-height: 76px;
+  border-radius: 12px;
+  padding: 14px 16px;
+  font-size: 16px;
+}
+
+.crisp-ann-modal__choice-grid {
+  gap: 24px;
+}
+
+.crisp-ann-modal__field select {
+  min-height: 52px;
+  appearance: none;
+  -webkit-appearance: none;
+  border-radius: 12px;
+  padding-right: 48px;
+  font-size: 16px;
+}
+
+.crisp-ann-modal__choice-grid .setting-item-control {
+  position: relative;
+}
+
+.crisp-ann-modal__choice-grid .setting-item-control::after {
+  position: absolute;
+  top: 50%;
+  right: 18px;
+  z-index: 3;
+  width: 10px;
+  height: 10px;
+  transform: translateY(-70%) rotate(45deg);
+  border-right: 2px solid var(--text-muted);
+  border-bottom: 2px solid var(--text-muted);
+  content: "";
+  pointer-events: none;
+}
+
+.crisp-ann-modal__choice-grid > .crisp-ann-modal__field:nth-child(2) select {
+  padding-left: 46px;
+}
+
+.crisp-ann-modal .crisp-ann-modal__highlight {
+  min-height: 60px;
+  border: 0 !important;
+  border-radius: 12px;
+  background: color-mix(
+    in srgb,
+    var(--crisp-dialog-muted-bg) 56%,
+    var(--background-primary)
+  ) !important;
+  padding: 10px 12px !important;
+}
+
+.theme-light .crisp-ann-modal .crisp-ann-modal__highlight {
+  background: #fbfaf8 !important;
+}
+
+.crisp-ann-modal__highlight .setting-item-info {
+  flex: 1 1 auto;
+}
+
+.crisp-ann-modal__highlight .setting-item-control {
+  flex: 0 0 auto;
+  margin-left: 20px;
+}
+
+/* The chips are nested inside .setting-item-info in the real dialog DOM. */
+.crisp-ann-modal__appearance {
+  position: relative;
+  display: block;
+  width: 100%;
+}
+
+.crisp-ann-modal__appearance .setting-item-info {
+  display: block;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+}
+
+.crisp-ann-modal__appearance .setting-item-name,
+.crisp-ann-modal__appearance .setting-item-description {
+  padding-right: 190px;
+}
+
+.crisp-ann-modal__appearance .setting-item-control {
+  position: absolute;
+  top: -2px;
+  right: 0;
+  z-index: 2;
+  margin: 0;
+}
+
+.crisp-ann-modal__appearance button {
+  font-size: 14px;
+}
+
+.crisp-ann-modal__appearance-chips {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  width: 100%;
+  margin-top: 18px;
+  border-radius: 13px;
+  padding: 4px;
+}
+
+.crisp-ann-modal__appearance-chip {
+  min-height: 44px;
+  overflow: hidden;
+  border-radius: 9px;
+  padding: 7px 10px;
+  font-size: 14px;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.crisp-ann-modal__appearance-chip:first-child,
+.crisp-ann-modal__appearance-chip.is-active,
+.crisp-ann-modal__appearance-chip[aria-selected="true"] {
+  background: var(--background-primary);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 7%);
+  color: var(--text-normal);
+  font-weight: 600;
+}
+
+.crisp-ann-modal .crisp-ann-modal__footer {
+  margin: 0;
+  border-top: 0 !important;
+  background: transparent !important;
+  padding: 2px 0 20px !important;
+}
+
+.crisp-ann-modal__footer button {
+  min-height: 44px;
+  border-radius: 11px;
+  padding-inline: 22px;
+  font-size: 15px;
+}
+
+@media (max-width: 760px) {
+  .crisp-ann-dialog .modal-title {
+    padding: 21px 24px 19px;
+    font-size: 21px;
+  }
+
+  .crisp-ann-dialog .modal-close-button {
+    top: 14px;
+    right: 16px;
+  }
+
+  .crisp-ann-modal {
+    gap: 21px;
+    padding: 24px 24px 0;
+  }
+
+  .crisp-ann-modal .crisp-ann-modal__footer {
+    margin-inline: -24px;
+    padding: 15px 24px !important;
+  }
+}
+
+@media (max-width: 560px) {
+  .crisp-ann-modal__appearance .setting-item-name,
+  .crisp-ann-modal__appearance .setting-item-description {
+    padding-right: 0;
+  }
+
+  .crisp-ann-modal__appearance .setting-item-control {
+    position: static;
+    justify-content: flex-start;
+    margin-top: 7px;
+  }
+
+  .crisp-ann-modal__appearance-chips {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin-top: 12px;
+  }
+}
+
+/* --------------------------------------------------------------------------
+ * Apple + Linear dialog alignment pass v3
+ * Corrects equal-row control alignment, full-width segmented controls,
+ * action-label spacing, and theme typography leakage.
+ * -------------------------------------------------------------------------- */
+
+.crisp-ann-dialog,
+.crisp-ann-dialog .modal-title,
+.crisp-ann-dialog .setting-item-name,
+.crisp-ann-dialog .setting-item-description,
+.crisp-ann-dialog button,
+.crisp-ann-dialog select,
+.crisp-ann-dialog textarea,
+.crisp-ann-dialog option {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif !important;
+  letter-spacing: normal !important;
+}
+
+.crisp-ann-modal > .setting-item {
+  width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+}
+
+.crisp-ann-modal__field--note,
+.crisp-ann-modal__field--note .setting-item-info,
+.crisp-ann-modal__field--note .setting-item-control,
+.crisp-ann-modal__note,
+.crisp-ann-modal__choice-grid,
+.crisp-ann-modal__highlight,
+.crisp-ann-modal__appearance {
+  width: 100% !important;
+  max-width: none !important;
+  box-sizing: border-box !important;
+}
+
+/* Keep the two select boxes on one common baseline even when one description wraps. */
+.crisp-ann-modal__choice-grid {
+  align-items: stretch !important;
+}
+
+.crisp-ann-modal__choice-grid > .crisp-ann-modal__field {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  min-width: 0 !important;
+}
+
+.crisp-ann-modal__choice-grid > .crisp-ann-modal__field > .setting-item-info {
+  flex: 1 1 auto !important;
+  width: 100% !important;
+  max-width: none !important;
+  margin-bottom: 12px !important;
+}
+
+.crisp-ann-modal__choice-grid > .crisp-ann-modal__field > .setting-item-control {
+  flex: 0 0 auto !important;
+  width: 100% !important;
+  margin-top: auto !important;
+  margin-left: 0 !important;
+}
+
+.crisp-ann-modal__choice-grid select {
+  display: block !important;
+  width: 100% !important;
+}
+
+/* Make the setting card edges and internal padding consistent with the fields. */
+.crisp-ann-modal .crisp-ann-modal__highlight {
+  width: 100% !important;
+  margin: 0 !important;
+  border-color: color-mix(in srgb, var(--text-normal) 10%, transparent) !important;
+}
+
+.theme-light .crisp-ann-modal .crisp-ann-modal__highlight {
+  background: #fbfaf8 !important;
+}
+
+/* The plugin nests the segmented control inside setting-item-info. */
+.crisp-ann-modal .crisp-ann-modal__appearance {
+  position: relative !important;
+  display: block !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: none !important;
+}
+
+.crisp-ann-modal__appearance > .setting-item-info {
+  display: block !important;
+  flex: 0 0 100% !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
+}
+
+.crisp-ann-modal__appearance .setting-item-name,
+.crisp-ann-modal__appearance .setting-item-description {
+  width: 100% !important;
+  max-width: none !important;
+  box-sizing: border-box !important;
+}
+
+.crisp-ann-modal__appearance .setting-item-control {
+  position: absolute !important;
+  top: 0 !important;
+  right: 0 !important;
+  display: flex !important;
+  justify-content: flex-end !important;
+  width: auto !important;
+  min-width: 184px !important;
+  margin: 0 !important;
+  text-align: right !important;
+}
+
+.crisp-ann-modal__appearance button {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  width: auto !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: 1.25 !important;
+  white-space: nowrap !important;
+}
+
+.crisp-ann-modal__appearance button::after {
+  content: "\00a0settings\00a0\2197";
+  white-space: pre !important;
+}
+
+.crisp-ann-modal__appearance-chips {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  margin: 18px 0 0 !important;
+  box-sizing: border-box !important;
+}
+
+.crisp-ann-modal__appearance-chip {
+  min-width: 0 !important;
+  max-width: none !important;
+  box-sizing: border-box !important;
+}
+
+/* Keep footer content on the same right boundary as the form fields. */
+.crisp-ann-modal .crisp-ann-modal__footer {
+  width: auto !important;
+  box-sizing: border-box !important;
+}
+
+@media (max-width: 560px) {
+  .crisp-ann-modal__choice-grid > .crisp-ann-modal__field > .setting-item-info {
+    margin-bottom: 10px !important;
+  }
+
+  .crisp-ann-modal__appearance .setting-item-control {
+    position: static !important;
+    justify-content: flex-start !important;
+    min-width: 0 !important;
+    margin-top: 7px !important;
+    text-align: left !important;
+  }
+
+  .crisp-ann-modal__appearance button {
+    justify-content: flex-start !important;
+  }
+}
+
+/* --------------------------------------------------------------------------
+ * Apple + Linear dialog semantic refinement v4
+ * Removes the decorative color swatch and presents reading appearance as a
+ * static settings summary rather than an interactive segmented control.
+ * -------------------------------------------------------------------------- */
+
+/* Color is already communicated by the select value. Remove the decorative
+   rainbow swatch and return the select text to the standard left inset. */
+.crisp-ann-modal__choice-grid > .crisp-ann-modal__field:nth-child(2) .setting-item-control::before {
+  display: none !important;
+  content: none !important;
+}
+
+.crisp-ann-modal__choice-grid > .crisp-ann-modal__field:nth-child(2) select {
+  padding-left: 16px !important;
+}
+
+/* Reading appearance is a read-only summary of the current global settings.
+   Remove segmented-control affordances and make every value visually equal. */
+.crisp-ann-modal__appearance-chips {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  gap: 0 !important;
+  width: 100% !important;
+  margin: 12px 0 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  pointer-events: none !important;
+}
+
+.crisp-ann-modal__appearance-chip,
+.crisp-ann-modal__appearance-chip:first-child,
+.crisp-ann-modal__appearance-chip.is-active,
+.crisp-ann-modal__appearance-chip[aria-selected="true"] {
+  display: inline-flex !important;
+  align-items: center !important;
+  min-width: 0 !important;
+  min-height: auto !important;
+  max-width: none !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  color: var(--text-muted) !important;
+  font-size: 14px !important;
+  font-weight: 400 !important;
+  line-height: 1.45 !important;
+  white-space: nowrap !important;
+  cursor: default !important;
+  opacity: 1 !important;
+  transform: none !important;
+  transition: none !important;
+}
+
+.crisp-ann-modal__appearance-chip:not(:last-child)::after {
+  margin: 0 10px !important;
+  color: var(--text-faint) !important;
+  content: "\00b7" !important;
+  font-weight: 400 !important;
+}
+
+.crisp-ann-modal__appearance-chip:hover,
+.crisp-ann-modal__appearance-chip:focus,
+.crisp-ann-modal__appearance-chip:active {
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: var(--text-muted) !important;
+  outline: none !important;
+  transform: none !important;
+}
+
+@media (max-width: 560px) {
+  .crisp-ann-modal__appearance-chips {
+    margin-top: 10px !important;
+  }
+
+  .crisp-ann-modal__appearance-chip:not(:last-child)::after {
+    margin-inline: 7px !important;
+  }
+}
+
+/* --------------------------------------------------------------------------
+ * Print / PDF export support
+ * Collapses margins, removes backdrops and heavy shadows, and keeps
+ * annotation labels visible but compact so they don't overlap body text.
+ * -------------------------------------------------------------------------- */
+
+@page {
+  margin: 2cm 1.5cm;
+}
+
+@media print {
+  /* Preserve annotation colors in print/PDF output */
+  .crisp-ann,
+  .crisp-ann__target,
+  .crisp-ann__label {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    color-adjust: exact;
+  }
+  .crisp-ann-dialog {
+    --crisp-dialog-soft-shadow: none;
+    border: 1px solid #ccc;
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  .crisp-ann {
+    --crisp-ann-mark: color-mix(in srgb, var(--crisp-ann-color) 10%, transparent);
+    --crisp-ann-rotate: 0deg;
+  }
+
+  .crisp-ann__label {
+    opacity: 1;
+  }
+
+  /* Inline margin notes as compact annotations beside text.
+     Remove absolute positioning so they flow in document order. */
+  .crisp-ann-margin-item {
+    position: relative !important;
+    left: auto !important;
+    right: auto !important;
+    top: auto !important;
+    bottom: auto !important;
+    max-width: none !important;
+    width: auto !important;
+    margin: 4px 0 4px 16px;
+    padding: 2px 6px;
+    border-left: 2px solid var(--crisp-ann-color);
+    font-size: 0.85rem;
+    color: var(--crisp-ann-color);
+    transform: none !important;
+    visibility: visible !important;
+    pointer-events: auto;
+    white-space: normal;
+    word-break: break-word;
+  }
+
+  .crisp-ann-margin-connectors {
+    display: none !important;
+  }
+
+  /* Also handle margin notes that use the alternative class name */
+  .crisp-ann-margin-note {
+    position: relative !important;
+    left: auto !important;
+    right: auto !important;
+    top: auto !important;
+    bottom: auto !important;
+    max-width: none !important;
+    width: auto !important;
+    margin: 4px 0 4px 16px;
+    padding: 2px 6px;
+    border-left: 2px solid var(--crisp-ann-color);
+    font-size: 0.85rem;
+    color: var(--crisp-ann-color);
+    transform: none !important;
+    visibility: visible !important;
+    pointer-events: auto;
+    white-space: normal;
+    word-break: break-word;
+  }
+
+  .crisp-ann::before {
+    display: none !important;
+  }
+
+  .crisp-ann--margin::before {
+    display: none !important;
+  }
+
+  .crisp-ann__label.crisp-ann-margin-item--left,
+  .crisp-ann__label.crisp-ann-margin-item--right {
+    text-align: left;
+    border-left: 2px solid var(--crisp-ann-color);
+  }
+
+  /* Wrap margin-note containers to prevent overlap with body text */
+  .crisp-ann--margin {
+    display: block !important;
+    margin: 4px 0 !important;
+    padding: 0 !important;
+  }
+
+  .crisp-ann--margin .crisp-ann__target {
+    display: inline;
+  }
+
+  .crisp-ann-block--space-top,
+  .crisp-ann-block--space-bottom {
+    padding-top: 0.5rem !important;
+    padding-bottom: 0.5rem !important;
+  }
+
+  .crisp-ann-margin-sizer {
+    overflow: visible !important;
+  }
+
+  /* Prevent margin notes from crossing page boundaries */
+  .crisp-ann-margin-item {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .crisp-ann--margin {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}
+
+/* --------------------------------------------------------------------------
+ * Apple + Linear dark mode enhanced color-mix contrast pass
+ * Sharpens dialog surface, field backgrounds, and highlight card for
+ * low-light readability without breaking theme token inheritance.
+ * -------------------------------------------------------------------------- */
+
+.theme-dark .crisp-ann-dialog {
+  --crisp-dialog-surface: color-mix(
+    in srgb,
+    var(--background-primary) 97%,
+    var(--background-secondary)
+  );
+  --crisp-dialog-field-bg: color-mix(
+    in srgb,
+    var(--background-primary) 88%,
+    var(--background-secondary)
+  );
+  --crisp-dialog-muted-bg: color-mix(
+    in srgb,
+    var(--background-secondary) 82%,
+    var(--background-primary)
+  );
+  --crisp-dialog-divider: color-mix(
+    in srgb,
+    var(--background-modifier-border) 94%,
+    transparent
+  );
+}
+
+.theme-dark .crisp-ann-modal__note,
+.theme-dark .crisp-ann-modal__field select {
+  background: color-mix(
+    in srgb,
+    var(--background-primary) 84%,
+    var(--background-secondary)
+  ) !important;
+  border-color: color-mix(
+    in srgb,
+    var(--background-modifier-border) 78%,
+    transparent
+  );
+}
+
+.theme-dark .crisp-ann-modal__note:focus,
+.theme-dark .crisp-ann-modal__field select:focus {
+  border-color: var(--crisp-dialog-accent);
+  background: var(--background-primary) !important;
+}
+
+.theme-dark .crisp-ann-modal__highlight {
+  background: color-mix(
+    in srgb,
+    var(--background-secondary) 65%,
+    var(--background-primary)
+  ) !important;
+  border-color: color-mix(
+    in srgb,
+    var(--text-normal) 8%,
+    transparent
+  ) !important;
+}
+
+.theme-dark .crisp-ann-modal__footer {
+  background: transparent !important;
+}
+
+.theme-dark .crisp-ann-modal__footer button {
+  background: color-mix(
+    in srgb,
+    var(--background-primary) 90%,
+    var(--background-secondary)
+  );
+  border-color: color-mix(
+    in srgb,
+    var(--background-modifier-border) 72%,
+    transparent
+  );
+}
+
+.theme-dark .crisp-ann-modal__footer button:hover {
+  background: var(--background-modifier-hover);
+}
+
+.theme-light .crisp-ann-modal__highlight {
+  border-color: color-mix(
+    in srgb,
+    var(--text-normal) 9%,
+    transparent
+  ) !important;
+}
+
+/* --------------------------------------------------------------------------
+ * Dark mode settings tab: improved contrast for headings and intro text
+ * -------------------------------------------------------------------------- */
+
+.theme-dark .crisp-ann-settings-intro {
+  color: color-mix(in srgb, var(--text-muted) 88%, var(--text-normal));
+}
+
+.theme-dark .crisp-ann-settings-heading .setting-item-name {
+  color: color-mix(in srgb, var(--text-normal) 90%, var(--text-muted));
+}
+
+/* --------------------------------------------------------------------------
+ * Outline view styles
+ * -------------------------------------------------------------------------- */
+
+.crisp-ann-outline-view {
+  padding: 0;
+  overflow-y: auto;
+  height: 100%;
+}
+
+.crisp-ann-outline-header {
+  padding: 12px 16px 8px;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.crisp-ann-outline-empty {
+  padding: 24px 16px;
+  color: var(--text-faint);
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.crisp-ann-outline-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.crisp-ann-outline-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 16px;
+  cursor: pointer;
+  border-bottom: 1px solid color-mix(
+    in srgb,
+    var(--background-modifier-border) 40%,
+    transparent
+  );
+  transition: background-color 100ms ease-out;
+}
+
+.crisp-ann-outline-item:hover {
+  background: var(--background-modifier-hover);
+}
+
+.crisp-ann-outline-item__color {
+  flex: 0 0 auto;
+  margin-top: 2px;
+  font-size: 0.75rem;
+  line-height: 1;
+}
+
+.crisp-ann-outline-item__body {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.crisp-ann-outline-item__target {
+  font-weight: 600;
+  font-size: 0.92rem;
+  color: var(--text-normal);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.crisp-ann-outline-item__note {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.crisp-ann-outline-item__meta {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.crisp-ann-outline-item__place {
+  font-size: 0.72rem;
+  color: var(--text-faint);
+  white-space: nowrap;
+}
+
+.crisp-ann-outline-item__no-mark {
+  font-size: 0.68rem;
+  color: var(--text-faint);
+  font-style: italic;
+  white-space: nowrap;
+}
+
+/* --------------------------------------------------------------------------
+ * Settings Collapsible Card Groups (Smooth Accordion)
+ * -------------------------------------------------------------------------- */
+.crisp-ann-setting-card {
+  margin-bottom: 0.85rem;
+  border-radius: 12px;
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  overflow: hidden;
+  transition: background 0.24s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.24s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.24s ease;
+}
+
+.crisp-ann-setting-card.is-open {
+  background: var(--background-primary-alt);
+  box-shadow: 0 4px 12px rgb(0 0 0 / 3%);
+}
+
+.crisp-ann-setting-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.85rem 1.15rem;
+  cursor: pointer;
+  user-select: none;
+  list-style: none;
+  transition: background 0.15s ease;
+}
+
+.crisp-ann-setting-card__header:hover {
+  background: var(--background-modifier-hover);
+}
+
+.crisp-ann-setting-card__header::-webkit-details-marker {
+  display: none;
+}
+
+.crisp-ann-setting-card__title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.18rem;
+}
+
+.crisp-ann-setting-card__title {
+  font-weight: 620;
+  font-size: 0.96rem;
+  color: var(--text-normal);
+  line-height: 1.25;
+}
+
+.crisp-ann-setting-card__desc {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  line-height: 1.35;
+}
+
+.crisp-ann-setting-card__chevron {
+  width: 1.4rem;
+  height: 1.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  border-radius: 50%;
+  transition: background 0.15s ease, color 0.15s ease;
+  flex-shrink: 0;
+}
+
+.crisp-ann-setting-card__header:hover .crisp-ann-setting-card__chevron {
+  color: var(--text-normal);
+  background: var(--background-modifier-hover);
+}
+
+.crisp-ann-setting-card__chevron::after {
+  content: "";
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(-45deg);
+  transition: transform 0.26s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.crisp-ann-setting-card.is-open .crisp-ann-setting-card__chevron::after {
+  transform: rotate(45deg);
+}
+
+/* Smooth Accordion Height & Fade Transition */
+.crisp-ann-setting-card__content-wrapper {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.crisp-ann-setting-card.is-open .crisp-ann-setting-card__content-wrapper {
+  grid-template-rows: 1fr;
+}
+
+.crisp-ann-setting-card__body {
+  overflow: hidden;
+  padding: 0 1.15rem;
+  opacity: 0;
+  transform: translateY(-8px);
+  transition: opacity 0.2s ease, transform 0.24s cubic-bezier(0.16, 1, 0.3, 1), padding 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.crisp-ann-setting-card.is-open .crisp-ann-setting-card__body {
+  padding: 0.6rem 1.15rem 1rem;
+  opacity: 1;
+  transform: translateY(0);
+  border-top: 1px solid var(--background-modifier-border);
+}
+
+.crisp-ann-setting-card__body .setting-item {
+  border-top: 0 !important;
+  padding-top: 0.4rem;
+  padding-bottom: 0.4rem;
+}
+
+.crisp-ann-about {
+  margin-top: 1.25rem;
+  padding: 1rem 1.15rem;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 12px;
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--interactive-accent) 7%, transparent),
+      transparent 58%
+    ),
+    var(--background-secondary);
+}
+
+.crisp-ann-about__title,
+.crisp-ann-about__description,
+.crisp-ann-about__author {
+  margin: 0;
+}
+
+.crisp-ann-about__title {
+  color: var(--text-normal);
+  font-size: 0.96rem;
+  font-weight: 650;
+}
+
+.crisp-ann-about__description {
+  margin-top: 0.38rem;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.crisp-ann-about__author {
+  margin-top: 0.72rem;
+  color: var(--text-faint);
+  font-size: var(--font-ui-smaller);
+}
+
+.crisp-ann-about__author-link {
+  color: var(--text-accent);
+  font-weight: 550;
+  text-decoration: none;
+}
+
+.crisp-ann-about__author-link:hover {
+  text-decoration: underline;
+}
+
+/* --------------------------------------------------------------------------
+ * Quick Annotation Micro Modal
+ * -------------------------------------------------------------------------- */
+.crisp-ann-quick-modal {
+  max-width: 440px !important;
+  padding: 1.2rem 1.4rem !important;
+  border-radius: 14px !important;
+}
+
+.crisp-ann-quick-modal__title {
+  margin: 0 0 0.3rem 0 !important;
+  font-size: 1.05rem;
+  font-weight: 650;
+  color: var(--text-normal);
+}
+
+.crisp-ann-quick-modal__target {
+  font-size: 0.84rem;
+  color: var(--text-muted);
+  margin-bottom: 0.85rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.crisp-ann-quick-modal__field {
+  border: 0 !important;
+  padding: 0 !important;
+  margin-bottom: 0.35rem !important;
+}
+
+.crisp-ann-quick-modal__field .setting-item-control {
+  width: 100%;
+}
+
+.crisp-ann-quick-modal__input {
+  width: 100% !important;
+  padding: 0.55rem 0.85rem !important;
+  border-radius: 8px !important;
+  border: 1px solid var(--background-modifier-border) !important;
+  background: var(--background-primary) !important;
+  font-size: 0.95rem !important;
+}
+
+.crisp-ann-quick-modal__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+}
+
+.crisp-ann-quick-modal__error {
+  min-height: 1.25rem;
+  margin: 0 0 0.55rem;
+  color: var(--text-error);
+  font-size: var(--font-ui-smaller);
+  line-height: 1.25rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .crisp-ann-setting-card,
+  .crisp-ann-setting-card__header,
+  .crisp-ann-setting-card__chevron,
+  .crisp-ann-setting-card__chevron::after,
+  .crisp-ann-setting-card__content-wrapper,
+  .crisp-ann-setting-card__body {
+    transition: none;
+  }
+}
