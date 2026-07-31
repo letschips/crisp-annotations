@@ -9,13 +9,24 @@ Adds hand-drawn arrows and handwritten-style notes to inline Markdown highlights
 - **Quick Annotation**: Add or edit annotations via hotkey, context menu, or command palette.
 - **Annotation Outline**: View all annotations in a dedicated sidebar outline tab and jump to targets.
 - **Pure Markdown Storage**: Annotations are saved as standard Markdown syntax `==highlight=={ann note="..."}`.
-- **Privacy First**: Fully offline, no analytics, no external servers.
 
 ## Installation
 
 1. Open Obsidian -> Settings -> Community plugins.
 2. Turn off Safe Mode and search for `Crisp Annotations`.
 3. Click Install and then Enable.
+
+## How to Use
+
+1. Select a single line of text in editing mode.
+2. Right-click and select `Add annotation`, or run `Crisp Annotations: Add or edit annotation` from the command palette.
+3. Fill in the note, choose place direction, color, and whether to keep the mark.
+4. Switch to reading mode to view the rendered hand-drawn annotation.
+
+## Developer Policy & Network Disclosure
+
+- **Optional Premium Features & License Activation**: Core annotation reading, rendering, and outline features are free to use. Premium visual customization options can be unlocked with an offline/online Crisp Suite license code.
+- **Network Requests**: When validating a license code, an HTTPS request is sent to `https://crisp-license.helloherve-xsn.workers.dev/api/verify-device` solely for device count registration. If offline, the plugin falls back to local offline Ed25519 cryptographic verification. No vault note contents or private data are ever sent over the network.
 
 ---
 
