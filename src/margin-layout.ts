@@ -9,6 +9,16 @@ import type {
 } from "./settings";
 import { buildCoiledSpiralPath } from "./spiral-geometry";
 
+function applyCssProps(el: HTMLElement, props: Record<string, string>): void {
+  if (typeof (el as HTMLElement & { setCssProps?: (p: Record<string, string>) => void }).setCssProps === "function") {
+    (el as HTMLElement & { setCssProps: (p: Record<string, string>) => void }).setCssProps(props);
+  } else {
+    for (const [key, val] of Object.entries(props)) {
+      el.style.setProperty(key, val);
+    }
+  }
+}
+
 export type MarginSide = "left" | "right";
 
 interface MarginAvailability {
@@ -622,13 +632,15 @@ export class MarginLayoutManager {
         "crisp-ann-margin-item",
         `crisp-ann-margin-item--${side}`,
       );
-      label.style.setProperty("right", "auto");
-      label.style.setProperty("bottom", "auto");
-      label.style.setProperty("left", "0");
-      label.style.setProperty("top", "0");
-      label.style.setProperty("transform", "rotate(var(--crisp-ann-rotate))");
-      label.style.setProperty("visibility", "hidden");
-      label.style.setProperty("width", `${settings.marginNoteWidth}px`);
+      applyCssProps(label, {
+        right: "auto",
+        bottom: "auto",
+        left: "0",
+        top: "0",
+        transform: "rotate(var(--crisp-ann-rotate))",
+        visibility: "hidden",
+        width: `${settings.marginNoteWidth}px`,
+      });
 
       const targetRect = target.getBoundingClientRect();
       const height = Math.max(
@@ -676,9 +688,11 @@ export class MarginLayoutManager {
         const wrapperRect = note.wrapper.getBoundingClientRect();
         const wrapperX = wrapperRect.left - sizerRect.left;
         const wrapperY = wrapperRect.top - sizerRect.top;
-        note.label.style.setProperty("left", `${note.x - wrapperX}px`);
-        note.label.style.setProperty("top", `${position.y - wrapperY}px`);
-        note.label.style.setProperty("visibility", "visible");
+        applyCssProps(note.label, {
+          left: `${note.x - wrapperX}px`,
+          top: `${position.y - wrapperY}px`,
+          visibility: "visible",
+        });
         positionedNotes.push(note);
       }
 
@@ -691,10 +705,9 @@ export class MarginLayoutManager {
         const minimumTop = previousBottom + NOTE_GAP;
         if (rect.top < minimumTop) {
           const currentTop = Number.parseFloat(note.label.style.top) || 0;
-          note.label.style.setProperty(
-            "top",
-            `${currentTop + minimumTop - rect.top}px`,
-          );
+          applyCssProps(note.label, {
+            top: `${currentTop + minimumTop - rect.top}px`,
+          });
           rect = note.label.getBoundingClientRect();
         }
         previousBottom = rect.bottom;
@@ -740,10 +753,9 @@ export class MarginLayoutManager {
         const minimumTop = previousBottom + NOTE_GAP;
         if (rect.top < minimumTop) {
           const currentTop = Number.parseFloat(label.style.top) || 0;
-          label.style.setProperty(
-            "top",
-            `${currentTop + minimumTop - rect.top}px`,
-          );
+          applyCssProps(label, {
+            top: `${currentTop + minimumTop - rect.top}px`,
+          });
           rect = label.getBoundingClientRect();
         }
         previousBottom = rect.bottom;

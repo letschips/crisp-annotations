@@ -1,3 +1,5 @@
+import { requestUrl } from "obsidian";
+
 export interface LicensePayload {
   product: string;
   licenseId: string;
@@ -17,7 +19,6 @@ export interface LicenseVerifyResult {
 
 const WORKER_VERIFY_URL = "https://crisp-license.helloherve-xsn.workers.dev/api/verify-device";
 
-// Crisp 5合1全家桶通用 Ed25519 嵌入公钥
 export const CRISP_PUBLIC_KEY_PEM = `-----BEGIN PUBLIC KEY-----
 MCowBQYDK2VwAyEAzih+Socv+iNgjB4OJhlzVQRf9IrlVaLX3ZggFX0H9hc=
 -----END PUBLIC KEY-----`;
@@ -40,9 +41,10 @@ export async function importEd25519PublicKey(pem: string): Promise<CryptoKey> {
     .replace("-----END PUBLIC KEY-----", "")
     .replace(/\s/g, "");
   const der = base64UrlToUint8Array(pemContents);
+  const derArrayBuffer = der.buffer.slice(der.byteOffset, der.byteOffset + der.byteLength) as ArrayBuffer;
   return await window.crypto.subtle.importKey(
     "spki",
-    der.buffer,
+    derArrayBuffer,
     { name: "Ed25519" },
     true,
     ["verify"]
@@ -57,7 +59,7 @@ function getDeviceId(): string {
 }
 
 /**
- * 本地 Ed25519 解密验签 + Cloudflare 在线设备数限制校验
+ * 本地 Ed25519 解密验签 + Obsidian requestUrl 在线设备数限制校验
  */
 export async function verifyLicenseCode(
   licenseCode: string,
@@ -100,13 +102,15 @@ export async function verifyLicenseCode(
 
     const publicKey = await importEd25519PublicKey(CRISP_PUBLIC_KEY_PEM);
     const signature = base64UrlToUint8Array(signatureBase64);
+    const signatureArrayBuffer = signature.buffer.slice(signature.byteOffset, signature.byteOffset + signature.byteLength) as ArrayBuffer;
     const dataBytes = new TextEncoder().encode(payloadBase64);
+    const dataArrayBuffer = dataBytes.buffer.slice(dataBytes.byteOffset, dataBytes.byteOffset + dataBytes.byteLength) as ArrayBuffer;
 
     const isSignatureValid = await window.crypto.subtle.verify(
       "Ed25519",
       publicKey,
-      signature,
-      dataBytes
+      signatureArrayBuffer,
+      dataArrayBuffer
     );
 
     if (!isSignatureValid) {
@@ -115,7 +119,8 @@ export async function verifyLicenseCode(
 
     try {
       const deviceId = getDeviceId();
-      const response = await fetch(WORKER_VERIFY_URL, {
+      const res = await requestUrl({
+        url: WORKER_VERIFY_URL,
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -126,8 +131,8 @@ export async function verifyLicenseCode(
         })
       });
 
-      if (response.ok) {
-        const cloudResult = await response.json();
+      if (res.status === 200 && res.json) {
+        const cloudResult = res.json as { valid?: boolean; reason?: string; message?: string };
         if (cloudResult.valid === false) {
           return { valid: false, reason: cloudResult.reason || "设备数已达上限" };
         }
@@ -138,6 +143,7 @@ export async function verifyLicenseCode(
         };
       }
     } catch (netErr) {
+      console.debug("Crisp Annotations license online check offline fallback", netErr);
     }
 
     return { valid: true, payload };

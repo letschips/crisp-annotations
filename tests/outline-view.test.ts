@@ -78,6 +78,7 @@ function makeDummySettings(): CrispAnnotationsSettings {
     annotationLayout: "inline",
     marginNoteWidth: 180,
     rememberLastChoice: true,
+    licenseCode: "",
     lastUsedPlace: "bottom",
     lastUsedColor: "amber",
     lastUsedMark: true,

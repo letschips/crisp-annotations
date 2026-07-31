@@ -116,7 +116,7 @@ export default class CrispAnnotationsPlugin extends Plugin {
     this.addCommand({
       id: "add-quick-annotation",
       name: "Quick annotation",
-      editorCallback: (editor) => this.addQuickAnnotation(editor),
+      editorCallback: (editor) => this.openQuickAnnotationModal(editor),
     });
     this.addCommand({
       id: "export-annotations-summary",

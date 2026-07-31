@@ -1,10 +1,10 @@
 {
   "id": "crisp-annotations",
   "name": "Crisp Annotations",
-  "version": "1.4.6",
+  "version": "1.4.7",
   "minAppVersion": "1.8.0",
   "description": "Adds hand-drawn arrows and handwritten notes to inline Markdown highlights.",
-  "author": "小红书 letschips",
-  "authorUrl": "https://xhslink.cn/m/3MwtKu4822b",
+  "author": "letschips",
+  "authorUrl": "https://github.com/Hervepotato/crisp-annotations",
   "isDesktopOnly": false
 }

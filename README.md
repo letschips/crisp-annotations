@@ -1,5 +1,26 @@
 # Crisp Annotations
 
+Adds hand-drawn arrows and handwritten-style notes to inline Markdown highlights in Obsidian.
+
+## Features
+
+- **Inline & Margin Layouts**: Display handwritten notes near target text or automatically layout them in reading margins.
+- **Hand-drawn Arrows & Spirals**: Choose from hand-drawn, coiled spiral, wavy, or straight connectors.
+- **Quick Annotation**: Add or edit annotations via hotkey, context menu, or command palette.
+- **Annotation Outline**: View all annotations in a dedicated sidebar outline tab and jump to targets.
+- **Pure Markdown Storage**: Annotations are saved as standard Markdown syntax `==highlight=={ann note="..."}`.
+- **Privacy First**: Fully offline, no analytics, no external servers.
+
+## Installation
+
+1. Open Obsidian -> Settings -> Community plugins.
+2. Turn off Safe Mode and search for `Crisp Annotations`.
+3. Click Install and then Enable.
+
+---
+
+# Crisp Annotations (中文说明)
+
 在 Obsidian 中把普通高亮扩展成带手绘箭头的行内标注。编辑模式保留可读、可移植的 Markdown；阅读模式渲染方向、颜色、箭头和手写标签。
 
 ## 安装
