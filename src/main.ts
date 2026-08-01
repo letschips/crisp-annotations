@@ -64,7 +64,7 @@ import {
   FONT_MODE_LABELS,
   PLACE_LABELS,
 } from "./constants";
-import { validateAnnotationTarget } from "./validation";
+import { normalizeAnnotationTarget, validateAnnotationTarget } from "./validation";
 
 export default class CrispAnnotationsPlugin extends Plugin {
   settings: CrispAnnotationsSettings = { ...DEFAULT_SETTINGS };
@@ -206,7 +206,12 @@ export default class CrispAnnotationsPlugin extends Plugin {
     const source = editor.getValue();
     const cursorOffset = editor.posToOffset(editor.getCursor());
     const existing = findAnnotationAt(source, cursorOffset);
-    const target = existing?.target ?? editor.getSelection();
+    const rawTarget = existing?.target ?? editor.getSelection();
+    if (!rawTarget) {
+      new Notice("Select text or place the cursor inside an annotation.");
+      return;
+    }
+    const { target, leadingTrim, trailingTrim } = normalizeAnnotationTarget(rawTarget);
     if (!target) {
       new Notice("Select text or place the cursor inside an annotation.");
       return;
@@ -230,6 +235,8 @@ export default class CrispAnnotationsPlugin extends Plugin {
     const to = existing
       ? editor.offsetToPos(existing.to)
       : editor.getCursor("to");
+    const trimmedFrom = editor.offsetToPos(editor.posToOffset(from) + leadingTrim);
+    const trimmedTo = editor.offsetToPos(editor.posToOffset(to) - trailingTrim);
 
     new AnnotationModal(
       this.app,
@@ -242,7 +249,7 @@ export default class CrispAnnotationsPlugin extends Plugin {
         settings?.openTabById(this.manifest.id);
       },
       async (spec) => {
-        editor.replaceRange(serializeAnnotation(target, spec), from, to);
+        editor.replaceRange(serializeAnnotation(target, spec), trimmedFrom, trimmedTo);
         await this.saveSettings();
       },
     ).open();
@@ -325,7 +332,12 @@ export default class CrispAnnotationsPlugin extends Plugin {
     const source = editor.getValue();
     const cursorOffset = editor.posToOffset(editor.getCursor());
     const existing = findAnnotationAt(source, cursorOffset);
-    const target = existing?.target ?? editor.getSelection();
+    const rawTarget = existing?.target ?? editor.getSelection();
+    if (!rawTarget) {
+      new Notice("Select text or place the cursor inside an annotation.");
+      return;
+    }
+    const { target, leadingTrim, trailingTrim } = normalizeAnnotationTarget(rawTarget);
     if (!target) {
       new Notice("Select text or place the cursor inside an annotation.");
       return;
@@ -351,13 +363,15 @@ export default class CrispAnnotationsPlugin extends Plugin {
     const to = existing
       ? editor.offsetToPos(existing.to)
       : editor.getCursor("to");
+    const trimmedFrom = editor.offsetToPos(editor.posToOffset(from) + leadingTrim);
+    const trimmedTo = editor.offsetToPos(editor.posToOffset(to) - trailingTrim);
 
     new QuickAnnotationModal(
       this.app,
       target,
       spec,
       (finalSpec) => {
-        editor.replaceRange(serializeAnnotation(target, finalSpec), from, to);
+        editor.replaceRange(serializeAnnotation(target, finalSpec), trimmedFrom, trimmedTo);
         if (this.settings.rememberLastChoice) {
           this.settings.lastUsedPlace = finalSpec.place;
           this.settings.lastUsedColor = finalSpec.color;

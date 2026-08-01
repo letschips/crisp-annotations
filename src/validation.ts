@@ -16,3 +16,19 @@ export function validateAnnotationTarget(target: string): {
   }
   return { valid: true };
 }
+
+/**
+ * 裁剪选区首尾空白并返回偏移量，供编辑器按裁剪后的精确范围替换，
+ * 保留原文中选区之外的空白字符。
+ */
+export function normalizeAnnotationTarget(raw: string): {
+  target: string;
+  leadingTrim: number;
+  trailingTrim: number;
+} {
+  return {
+    target: raw.trim(),
+    leadingTrim: raw.length - raw.trimStart().length,
+    trailingTrim: raw.length - raw.trimEnd().length,
+  };
+}
