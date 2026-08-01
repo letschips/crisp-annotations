@@ -254,7 +254,7 @@ export function findAnnotations(source: string): AnnotationMatch[] {
   const annotations: AnnotationMatch[] = [];
   const codeRanges = findMarkdownCodeRanges(source);
   let codeRangeIndex = 0;
-  const pattern = /==((?:(?!==)[^\n])+)==\{ann\s+((?:"(?:\\.|[^"\\])*"|[^}])*)\}/g;
+  const pattern = /==((?:(?!==)[\s\S])+)==\{ann\s+((?:"(?:\\.|[^"\\])*"|[^}])*)\}/g;
   for (const match of source.matchAll(pattern)) {
     const from = match.index;
     while (codeRanges[codeRangeIndex]?.to <= from) {

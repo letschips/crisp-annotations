@@ -8,10 +8,10 @@ export function validateAnnotationTarget(target: string): {
       error: "Annotations must use trimmed text.",
     };
   }
-  if (/\r?\n|==/.test(target)) {
+  if (target.includes("==")) {
     return {
       valid: false,
-      error: "Annotations must use one line without == markers.",
+      error: "Annotations must not contain == markers.",
     };
   }
   return { valid: true };

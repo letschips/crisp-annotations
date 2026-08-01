@@ -55,6 +55,28 @@ describe("findAnnotations", () => {
     expect(findAnnotations(source)[0]?.target).toBe("a = b");
   });
 
+  it("parses multi-line targets", () => {
+    const source = '==line one\nline two=={ann note="多行"}';
+    const annotation = findAnnotations(source)[0];
+    expect(annotation?.target).toBe("line one\nline two");
+    expect(annotation?.targetFrom).toBe(2);
+    expect(annotation?.targetTo).toBe(19);
+    expect(annotation?.spec.note).toBe("多行");
+  });
+
+  it("round-trips multi-line targets through serializeAnnotation", () => {
+    const target = "line one\nline two";
+    const serialized = serializeAnnotation(target, {
+      note: "多行",
+      place: "right",
+      color: "blue",
+      mark: true,
+    });
+    const annotation = findAnnotations(serialized)[0];
+    expect(annotation?.target).toBe(target);
+    expect(annotation?.spec.note).toBe("多行");
+  });
+
   it("ignores literal annotation examples inside Markdown code", () => {
     const source = [
       '`==inline=={ann note="不应解析"}`',

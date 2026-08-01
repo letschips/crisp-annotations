@@ -41,9 +41,15 @@ describe("validateAnnotationTarget", () => {
     expect(result.error).toBe("Annotations must use trimmed text.");
   });
 
-  it("still rejects multi-line targets and == markers", () => {
-    expect(validateAnnotationTarget("a\nb").valid).toBe(false);
+  it("still rejects == markers", () => {
     expect(validateAnnotationTarget("a==b").valid).toBe(false);
+    expect(validateAnnotationTarget("a==b").error).toBe(
+      "Annotations must not contain == markers.",
+    );
+  });
+
+  it("accepts multi-line targets", () => {
+    expect(validateAnnotationTarget("line one\nline two").valid).toBe(true);
   });
 
   it("accepts trimmed single-line targets", () => {

@@ -118,7 +118,7 @@ export class CrispAnnotationsOutlineView extends ItemView {
 
       body.createSpan({
         cls: "crisp-ann-outline-item__target",
-        text: annotation.target,
+        text: annotation.target.replace(/\n/g, " "),
       });
 
       body.createSpan({

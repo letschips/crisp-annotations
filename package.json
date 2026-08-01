@@ -1,6 +1,6 @@
 {
   "name": "crisp-annotations",
-  "version": "1.4.11",
+  "version": "1.4.12",
   "description": "Hand-drawn inline annotations for Obsidian Markdown.",
   "main": "main.js",
   "type": "module",
