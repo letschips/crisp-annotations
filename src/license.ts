@@ -132,8 +132,8 @@ export async function verifyLicenseCode(
         })
       });
 
-      if (res.status === 200 && res.json) {
-        const cloudResult = res.json as { valid?: boolean; reason?: string; message?: string };
+      const cloudResult = res.json as { valid?: boolean; reason?: string; message?: string };
+      if (cloudResult && typeof cloudResult.valid === "boolean") {
         if (cloudResult.valid === false) {
           return { valid: false, reason: cloudResult.reason || "设备数已达上限" };
         }
