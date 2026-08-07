@@ -9,7 +9,8 @@ import {
   type ViewUpdate,
   WidgetType,
 } from "@codemirror/view";
-import { buildEditorPreviewRanges } from "./editor-preview";
+import { buildEditorPreviewRangesFromAnnotations } from "./editor-preview";
+import { findAnnotations, type AnnotationMatch } from "./annotation-syntax";
 import type { AnnotationColor } from "./annotation-syntax";
 
 class AnnotationPreviewWidget extends WidgetType {
@@ -41,88 +42,106 @@ class AnnotationPreviewWidget extends WidgetType {
   }
 }
 
-function buildDecorations(view: EditorView, enabled: boolean): DecorationSet {
-  if (!enabled) {
-    return Decoration.none;
-  }
-  const doc = view.state.doc;
-  const docLength = doc.length;
-  const ranges = buildEditorPreviewRanges(
-    doc.toString(),
-    view.state.selection.ranges.map((range) => ({
-      from: range.from,
-      to: range.to,
-    })),
-  );
-  const builder = new RangeSetBuilder<Decoration>();
-  for (const range of ranges) {
-    const targetFrom = range.targetFrom;
-    const targetTo = range.targetTo;
-    // Guard against out-of-bounds ranges that would cause CM6 RangeError.
-    if (
-      targetFrom < 0
-      || targetFrom > targetTo
-      || targetTo > docLength
-    ) {
-      continue;
-    }
-    const targetClasses = [
-      "crisp-ann-editor-target",
-      `crisp-ann-editor-target--${range.color}`,
-    ];
-    if (!range.mark) {
-      targetClasses.push("crisp-ann-editor-target--no-mark");
-    }
-    builder.add(
-      targetFrom,
-      targetTo,
-      Decoration.mark({
-        class: targetClasses.join(" "),
-        attributes: {
-          "data-crisp-ann-place": range.place,
-          title: range.note,
-        },
-      }),
-    );
-    if (range.hideDirective) {
-      const directiveFrom = range.directiveFrom;
-      const directiveTo = range.directiveTo;
-      // Guard against out-of-bounds directive ranges for the replace widget.
-      if (
-        directiveFrom >= 0
-        && directiveFrom <= directiveTo
-        && directiveTo <= docLength
-      ) {
-        builder.add(
-          directiveFrom,
-          directiveTo,
-          Decoration.replace({
-            widget: new AnnotationPreviewWidget(range.note, range.color),
-          }),
-        );
-      }
-    }
-  }
-  return builder.finish();
-}
-
 export function createAnnotationEditorExtension(
   isEnabled: () => boolean,
 ): Extension {
   class AnnotationEditorPlugin implements PluginValue {
     decorations: DecorationSet;
+    private cachedAnnotations: AnnotationMatch[] = [];
+    private cacheValid = false;
 
     constructor(view: EditorView) {
-      this.decorations = buildDecorations(view, isEnabled());
+      this.decorations = this.buildDecorations(view, isEnabled());
     }
 
     update(update: ViewUpdate): void {
+      const enabled = isEnabled();
+      if (update.docChanged) {
+        this.cacheValid = false;
+      }
+      if (!enabled) {
+        if (this.decorations.size > 0) {
+          this.decorations = Decoration.none;
+        }
+        return;
+      }
       if (update.docChanged || update.viewportChanged || update.selectionSet) {
-        this.decorations = buildDecorations(update.view, isEnabled());
+        this.decorations = this.buildDecorations(update.view, enabled);
       }
     }
 
-    destroy(): void {}
+    private buildDecorations(view: EditorView, enabled: boolean): DecorationSet {
+      if (!enabled) {
+        return Decoration.none;
+      }
+      if (!this.cacheValid) {
+        this.cachedAnnotations = findAnnotations(view.state.doc.toString());
+        this.cacheValid = true;
+      }
+      const docLength = view.state.doc.length;
+      const ranges = buildEditorPreviewRangesFromAnnotations(
+        this.cachedAnnotations,
+        view.state.selection.ranges.map((range) => ({
+          from: range.from,
+          to: range.to,
+        })),
+      );
+      const builder = new RangeSetBuilder<Decoration>();
+      for (const range of ranges) {
+        const targetFrom = range.targetFrom;
+        const targetTo = range.targetTo;
+        // Guard against out-of-bounds ranges that would cause CM6 RangeError.
+        if (
+          targetFrom < 0
+          || targetFrom > targetTo
+          || targetTo > docLength
+        ) {
+          continue;
+        }
+        const targetClasses = [
+          "crisp-ann-editor-target",
+          `crisp-ann-editor-target--${range.color}`,
+        ];
+        if (!range.mark) {
+          targetClasses.push("crisp-ann-editor-target--no-mark");
+        }
+        builder.add(
+          targetFrom,
+          targetTo,
+          Decoration.mark({
+            class: targetClasses.join(" "),
+            attributes: {
+              "data-crisp-ann-place": range.place,
+              title: range.note,
+            },
+          }),
+        );
+        if (range.hideDirective) {
+          const directiveFrom = range.directiveFrom;
+          const directiveTo = range.directiveTo;
+          // Guard against out-of-bounds directive ranges for the replace widget.
+          if (
+            directiveFrom >= 0
+            && directiveFrom <= directiveTo
+            && directiveTo <= docLength
+          ) {
+            builder.add(
+              directiveFrom,
+              directiveTo,
+              Decoration.replace({
+                widget: new AnnotationPreviewWidget(range.note, range.color),
+              }),
+            );
+          }
+        }
+      }
+      return builder.finish();
+    }
+
+    destroy(): void {
+      this.cachedAnnotations = [];
+      this.cacheValid = false;
+    }
   }
 
   return ViewPlugin.fromClass(AnnotationEditorPlugin, {

@@ -1,6 +1,7 @@
 import {
   findAnnotations,
   type AnnotationColor,
+  type AnnotationMatch,
   type AnnotationPlace,
 } from "./annotation-syntax";
 
@@ -21,11 +22,11 @@ export interface EditorPreviewRange {
   hideDirective: boolean;
 }
 
-export function buildEditorPreviewRanges(
-  source: string,
-  selections: EditorSelectionRange[],
+export function buildEditorPreviewRangesFromAnnotations(
+  annotations: readonly AnnotationMatch[],
+  selections: readonly EditorSelectionRange[],
 ): EditorPreviewRange[] {
-  return findAnnotations(source).map((annotation) => {
+  return annotations.map((annotation) => {
     const isActive = selections.some((selection) => {
       if (selection.from === selection.to) {
         return selection.from >= annotation.from && selection.from < annotation.to;
@@ -44,4 +45,11 @@ export function buildEditorPreviewRanges(
       hideDirective: !isActive,
     };
   });
+}
+
+export function buildEditorPreviewRanges(
+  source: string,
+  selections: EditorSelectionRange[],
+): EditorPreviewRange[] {
+  return buildEditorPreviewRangesFromAnnotations(findAnnotations(source), selections);
 }

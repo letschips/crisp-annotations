@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { buildEditorPreviewRanges } from "../src/editor-preview";
+import { buildEditorPreviewRanges, buildEditorPreviewRangesFromAnnotations } from "../src/editor-preview";
+import { findAnnotations } from "../src/annotation-syntax";
 
 describe("buildEditorPreviewRanges", () => {
   it("collapses metadata outside the active annotation and reveals it at the cursor", () => {
@@ -25,6 +26,28 @@ describe("buildEditorPreviewRanges", () => {
       to: annotationEnd,
     }]);
 
+    expect(ranges[0]?.hideDirective).toBe(true);
+  });
+});
+
+describe("buildEditorPreviewRangesFromAnnotations", () => {
+  it("produces identical output to buildEditorPreviewRanges for the same source", () => {
+    const source = 'A ==x=={ann note="n1" color=red} B ==y=={ann note="n2" place=top}';
+    const selections = [{ from: 0, to: 0 }];
+    const direct = buildEditorPreviewRanges(source, selections);
+    const fromCached = buildEditorPreviewRangesFromAnnotations(
+      findAnnotations(source),
+      selections,
+    );
+    expect(fromCached).toEqual(direct);
+  });
+
+  it("avoids re-parsing when annotations are cached", () => {
+    const source = '==x=={ann note="cached"}';
+    const annotations = findAnnotations(source);
+    const ranges = buildEditorPreviewRangesFromAnnotations(annotations, []);
+    expect(ranges).toHaveLength(1);
+    expect(ranges[0]?.note).toBe("cached");
     expect(ranges[0]?.hideDirective).toBe(true);
   });
 });

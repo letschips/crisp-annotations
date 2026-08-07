@@ -71,6 +71,7 @@ export default class CrispAnnotationsPlugin extends Plugin {
   private readonly appearanceDocuments = new Set<Document>();
   private readonly marginLayout = new MarginLayoutManager(() => this.settings);
   private lastMarkdownLeaf: WorkspaceLeaf | null = null;
+  private outlineRefreshTimer: ReturnType<typeof setTimeout> | null = null;
 
   async onload(): Promise<void> {
     registerIcons();
@@ -151,7 +152,14 @@ export default class CrispAnnotationsPlugin extends Plugin {
       if (sourceLeaf) {
         this.lastMarkdownLeaf = sourceLeaf;
       }
-      this.refreshOutlineViews(editor.getValue(), sourceLeaf);
+      const source = editor.getValue();
+      if (this.outlineRefreshTimer !== null) {
+        clearTimeout(this.outlineRefreshTimer);
+      }
+      this.outlineRefreshTimer = setTimeout(() => {
+        this.outlineRefreshTimer = null;
+        this.refreshOutlineViews(source, sourceLeaf);
+      }, 200);
     }));
 
     this.addSettingTab(new CrispAnnotationsSettingTab(this));
@@ -165,6 +173,10 @@ export default class CrispAnnotationsPlugin extends Plugin {
   }
 
   onunload(): void {
+    if (this.outlineRefreshTimer !== null) {
+      clearTimeout(this.outlineRefreshTimer);
+      this.outlineRefreshTimer = null;
+    }
     this.marginLayout.destroy();
     for (const appearanceDocument of this.appearanceDocuments) {
       appearanceDocument.body.removeAttribute("data-crisp-ann-theme");
