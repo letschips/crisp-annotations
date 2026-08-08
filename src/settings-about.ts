@@ -9,7 +9,7 @@ export function renderAboutCard(
 
   const title = document.createElement("h3");
   title.className = "crisp-ann-about__title";
-  title.textContent = `About ${pluginName}`;
+  title.textContent = `关于 ${pluginName}`;
 
   const copy = document.createElement("p");
   copy.className = "crisp-ann-about__description";

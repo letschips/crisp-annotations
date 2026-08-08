@@ -7,30 +7,30 @@ export interface AnnotationModalPresentation {
 }
 
 const LAYOUT_LABELS: Record<CrispAnnotationsSettings["annotationLayout"], string> = {
-  inline: "Inline",
-  "smart-margins": "Smart margins",
-  "left-margin": "Left margin",
-  "right-margin": "Right margin",
+  inline: "内联",
+  "smart-margins": "智能页边",
+  "left-margin": "左侧页边",
+  "right-margin": "右侧页边",
 };
 
 const ARROW_LABELS: Record<CrispAnnotationsSettings["arrowStyle"], string> = {
-  "hand-drawn": "Hand-drawn",
-  straight: "Straight",
-  "custom-curve": "Custom curve",
-  spiral: "Coiled spiral",
-  wavy: "Wavy line",
-  "double-underline": "Double line",
+  "hand-drawn": "手绘",
+  straight: "直线",
+  "custom-curve": "自定义曲线",
+  spiral: "螺旋",
+  wavy: "波浪线",
+  "double-underline": "双线",
 };
 
 const STROKE_LABELS: Record<CrispAnnotationsSettings["arrowStrokeStyle"], string> = {
-  solid: "Solid",
-  dashed: "Dashed",
+  solid: "实线",
+  dashed: "虚线",
 };
 
 const FONT_LABELS: Record<CrispAnnotationsSettings["annotationFontMode"], string> = {
-  handwritten: "Bundled handwriting",
-  body: "Body font",
-  custom: "Custom font",
+  handwritten: "内置手写体",
+  body: "跟随正文",
+  custom: "自定义字体",
 };
 
 export function buildAnnotationModalPresentation(
@@ -39,9 +39,9 @@ export function buildAnnotationModalPresentation(
   const usesMargins = settings.annotationLayout !== "inline";
   return {
     placementDescription: usesMargins
-      ? "Preferred side; Smart margins may rebalance it."
-      : "Where the label sits relative to the target text.",
-    placementName: usesMargins ? "Preferred placement" : "Placement",
+      ? "首选侧；智能页边可能重新平衡它的位置。"
+      : "标签相对目标文字的摆放位置。",
+    placementName: usesMargins ? "首选位置" : "位置",
     summary: [
       LAYOUT_LABELS[settings.annotationLayout],
       ARROW_LABELS[settings.arrowStyle],

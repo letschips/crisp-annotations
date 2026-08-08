@@ -49,7 +49,7 @@ export class CrispAnnotationsOutlineView extends ItemView {
   }
 
   getDisplayText(): string {
-    return "Annotations outline";
+    return "标注大纲";
   }
 
   getIcon(): string {
@@ -82,7 +82,7 @@ export class CrispAnnotationsOutlineView extends ItemView {
         cls: "crisp-ann-outline-empty",
       });
       empty.createSpan({
-        text: "No annotations in current document",
+        text: "当前文档没有标注",
       });
       return;
     }
@@ -91,7 +91,7 @@ export class CrispAnnotationsOutlineView extends ItemView {
       cls: "crisp-ann-outline-header",
     });
     header.createSpan({
-      text: `Annotations (${this.annotations.length})`,
+      text: `标注 (${this.annotations.length})`,
     });
 
     const list = container.createDiv({
@@ -136,7 +136,7 @@ export class CrispAnnotationsOutlineView extends ItemView {
       if (!annotation.spec.mark) {
         meta.createSpan({
           cls: "crisp-ann-outline-item__no-mark",
-          text: "No highlight",
+          text: "无高亮",
         });
       }
 

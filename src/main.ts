@@ -220,12 +220,12 @@ export default class CrispAnnotationsPlugin extends Plugin {
     const existing = findAnnotationAt(source, cursorOffset);
     const rawTarget = existing?.target ?? editor.getSelection();
     if (!rawTarget) {
-      new Notice("Select text or place the cursor inside an annotation.");
+      new Notice("请先选中文字，或将光标放在标注内。");
       return;
     }
     const { target, leadingTrim, trailingTrim } = normalizeAnnotationTarget(rawTarget);
     if (!target) {
-      new Notice("Select text or place the cursor inside an annotation.");
+      new Notice("请先选中文字，或将光标放在标注内。");
       return;
     }
     const validation = validateAnnotationTarget(target);
@@ -346,12 +346,12 @@ export default class CrispAnnotationsPlugin extends Plugin {
     const existing = findAnnotationAt(source, cursorOffset);
     const rawTarget = existing?.target ?? editor.getSelection();
     if (!rawTarget) {
-      new Notice("Select text or place the cursor inside an annotation.");
+      new Notice("请先选中文字，或将光标放在标注内。");
       return;
     }
     const { target, leadingTrim, trailingTrim } = normalizeAnnotationTarget(rawTarget);
     if (!target) {
-      new Notice("Select text or place the cursor inside an annotation.");
+      new Notice("请先选中文字，或将光标放在标注内。");
       return;
     }
     const validation = validateAnnotationTarget(target);
@@ -399,7 +399,7 @@ export default class CrispAnnotationsPlugin extends Plugin {
     const cursorOffset = editor.posToOffset(editor.getCursor());
     const existing = findAnnotationAt(source, cursorOffset);
     if (!existing) {
-      new Notice("Place the cursor inside an annotation to remove it.");
+      new Notice("请将光标放在标注内以删除它。");
       return;
     }
     const replacement = existing.spec.mark
@@ -436,7 +436,7 @@ export default class CrispAnnotationsPlugin extends Plugin {
     const source = editor.getValue();
     const matches = findAnnotations(source);
     if (matches.length === 0) {
-      new Notice("No Crisp Annotations found in current document.");
+      new Notice("当前文档中没有 Crisp 标注。");
       return;
     }
     const lines = [
@@ -451,8 +451,8 @@ export default class CrispAnnotationsPlugin extends Plugin {
     ];
     const text = lines.join("\n");
     void navigator.clipboard.writeText(text).then(
-      () => new Notice(`Copied ${matches.length} annotations to clipboard!`),
-      () => new Notice("Failed to copy annotations to clipboard."),
+      () => new Notice(`已复制 ${matches.length} 条标注到剪贴板！`),
+      () => new Notice("复制标注到剪贴板失败。"),
     );
   }
 }
@@ -585,19 +585,19 @@ class CrispAnnotationsSettingTab extends PluginSettingTab {
 
     this.containerEl.createEl("p", {
       cls: "crisp-ann-settings-intro",
-      text: "Defaults are saved into new annotations. Reading layout, note font and connector settings update every annotation.",
+      text: "默认值会写入新标注；阅读布局、笔记字体与连接线设置会更新所有标注。",
     });
 
     // 1. Defaults Group (Default Open)
     const defaultsBody = createGroup(
-      "Defaults for new annotations",
-      "These choices are copied into the Markdown when you add an annotation.",
+      "新标注默认值",
+      "添加标注时，这些选项会写入 Markdown。",
       true,
     );
 
     new Setting(defaultsBody)
-      .setName("Default placement")
-      .setDesc("Inline position, or preferred side when a margin layout is active.")
+      .setName("默认位置")
+      .setDesc("内联位置，或页边布局激活时的首选侧。")
       .addDropdown((dropdown) => {
         for (const place of ANNOTATION_PLACES) {
           dropdown.addOption(place, PLACE_LABELS[place]);
@@ -611,8 +611,8 @@ class CrispAnnotationsSettingTab extends PluginSettingTab {
       });
 
     new Setting(defaultsBody)
-      .setName("Default color")
-      .setDesc("Initial color selected in the annotation dialog.")
+      .setName("默认颜色")
+      .setDesc("标注弹窗中初始选中的颜色。")
       .addDropdown((dropdown) => {
         for (const color of ANNOTATION_COLORS) {
           dropdown.addOption(color, COLOR_LABELS[color]);
@@ -626,8 +626,8 @@ class CrispAnnotationsSettingTab extends PluginSettingTab {
       });
 
     new Setting(defaultsBody)
-      .setName("Highlight target by default")
-      .setDesc("You can still change this for each annotation in its dialog.")
+      .setName("默认高亮标注目标")
+      .setDesc("仍可在每个标注的弹窗中单独修改。")
       .addToggle((toggle) => toggle
         .setValue(this.plugin.settings.defaultMark)
         .onChange(async (value) => {
@@ -637,14 +637,14 @@ class CrispAnnotationsSettingTab extends PluginSettingTab {
 
     // 2. Reading Layout Group
     const layoutBody = createGroup(
-      "Reading layout",
-      "Controls where all annotation notes are rendered in Reading mode.",
+      "阅读布局",
+      "控制阅读模式下所有标注笔记的渲染位置。",
       false,
     );
 
     new Setting(layoutBody)
-      .setName("Annotation layout")
-      .setDesc("Smart margins follows each annotation's preferred side and rebalances when needed.")
+      .setName("标注布局")
+      .setDesc("智能页边跟随每个标注的首选侧，并按需重新平衡。")
       .addDropdown((dropdown) => {
         for (const layout of ANNOTATION_LAYOUTS) {
           dropdown.addOption(layout, ANNOTATION_LAYOUT_LABELS[layout]);
@@ -659,8 +659,8 @@ class CrispAnnotationsSettingTab extends PluginSettingTab {
       });
 
     marginWidthSetting = new Setting(layoutBody)
-      .setName("Margin note width")
-      .setDesc("Available from 140–260 px. Narrow panes automatically fall back to Inline.")
+      .setName("页边笔记宽度")
+      .setDesc("可选 140–260px；窄面板自动回退为内联。")
       .addSlider((slider) => slider
         .setLimits(140, 260, 10)
         .setValue(this.plugin.settings.marginNoteWidth)
@@ -673,14 +673,14 @@ class CrispAnnotationsSettingTab extends PluginSettingTab {
 
     // 3. Appearance & Typography Group
     const appearanceBody = createGroup(
-      "Annotation appearance",
-      "Global typography, theme presets and the reusable Custom color.",
+      "标注外观",
+      "全局字体、主题预设与可复用的自定义颜色。",
       false,
     );
 
     new Setting(appearanceBody)
-      .setName("Color theme preset")
-      .setDesc("Switch the global color palette (Classic, Morandi Muted, Kindle Paper, Cyberpunk Neon).")
+      .setName("颜色主题预设")
+      .setDesc("切换全局配色（Classic、莫兰迪、Kindle Paper、赛博霓虹）。")
       .addDropdown((dropdown) => {
         for (const theme of COLOR_THEMES) {
           dropdown.addOption(theme, COLOR_THEME_LABELS[theme]);
@@ -695,8 +695,8 @@ class CrispAnnotationsSettingTab extends PluginSettingTab {
       });
 
     new Setting(appearanceBody)
-      .setName("Custom annotation color")
-      .setDesc("Used by every annotation whose saved color is Custom.")
+      .setName("自定义标注颜色")
+      .setDesc("用于所有保存颜色为「自定义」的标注。")
       .addColorPicker((picker) => {
         customColorPicker = picker;
         picker
@@ -719,7 +719,7 @@ class CrispAnnotationsSettingTab extends PluginSettingTab {
         text.inputEl.addEventListener("change", async () => {
           const normalized = normalizeHexColor(text.getValue());
           if (!normalized) {
-            new Notice("Use a 3- or 6-digit hex color such as #3b82f6.");
+            new Notice("请输入 3 或 6 位十六进制颜色，例如 #3b82f6。");
             text.setValue(this.plugin.settings.customColor);
             return;
           }
@@ -731,8 +731,8 @@ class CrispAnnotationsSettingTab extends PluginSettingTab {
       });
 
     new Setting(appearanceBody)
-      .setName("Annotation font")
-      .setDesc("Controls annotation notes only; target text keeps the body font.")
+      .setName("标注字体")
+      .setDesc("只影响标注笔记；目标文本保持正文字体。")
       .addDropdown((dropdown) => {
         for (const mode of ANNOTATION_FONT_MODES) {
           dropdown.addOption(mode, FONT_MODE_LABELS[mode]);
@@ -747,8 +747,8 @@ class CrispAnnotationsSettingTab extends PluginSettingTab {
       });
 
     customFontSetting = new Setting(appearanceBody)
-      .setName("Custom font family")
-      .setDesc('CSS font-family, for example "LXGW WenKai", cursive.')
+      .setName("自定义字体族")
+      .setDesc('CSS font-family，例如 "LXGW WenKai", cursive。')
       .addText((text) => {
         text
           .setPlaceholder('"LXGW WenKai", cursive')
@@ -761,14 +761,14 @@ class CrispAnnotationsSettingTab extends PluginSettingTab {
 
     // 4. Connector Group
     const connectorBody = createGroup(
-      "Connector",
-      "Global line treatment used by both inline and margin annotations.",
+      "连接线",
+      "内联与页边标注共用的全局线条样式。",
       false,
     );
 
     new Setting(connectorBody)
-      .setName("Arrow style")
-      .setDesc("Choose hand-drawn, straight, custom curve, coiled spiral, wavy or double line.")
+      .setName("箭头样式")
+      .setDesc("选择手绘、直线、自定义曲线、螺旋、波浪或双线。")
       .addDropdown((dropdown) => {
         for (const style of ARROW_STYLES) {
           dropdown.addOption(style, ARROW_STYLE_LABELS[style]);
@@ -783,8 +783,8 @@ class CrispAnnotationsSettingTab extends PluginSettingTab {
       });
 
     new Setting(connectorBody)
-      .setName("Arrow line")
-      .setDesc("Use a solid or dashed connector. The arrowhead stays legible.")
+      .setName("箭头线条")
+      .setDesc("使用实线或虚线连接；箭头保持清晰。")
       .addDropdown((dropdown) => {
         for (const style of ARROW_STROKE_STYLES) {
           dropdown.addOption(style, ARROW_STROKE_LABELS[style]);
@@ -798,8 +798,8 @@ class CrispAnnotationsSettingTab extends PluginSettingTab {
       });
 
     curveSetting = new Setting(connectorBody)
-      .setName("Custom curve")
-      .setDesc("Negative and positive values bend the line in opposite directions.")
+      .setName("自定义曲线")
+      .setDesc("负值与正值使线条向相反方向弯曲。")
       .addSlider((slider) => slider
         .setLimits(-100, 100, 5)
         .setValue(this.plugin.settings.arrowCurve)
@@ -812,14 +812,14 @@ class CrispAnnotationsSettingTab extends PluginSettingTab {
 
     // 5. Editing Group
     const editingBody = createGroup(
-      "Editing",
-      "Controls how the Markdown metadata is presented while writing.",
+      "编辑",
+      "控制写作时标注元数据的呈现方式。",
       false,
     );
 
     new Setting(editingBody)
-      .setName("Compact editor preview")
-      .setDesc("Replace annotation metadata with a small note badge outside the cursor.")
+      .setName("紧凑编辑器预览")
+      .setDesc("用光标外的紧凑徽章替代标注元数据。")
       .addToggle((toggle) => toggle
         .setValue(this.plugin.settings.editorPreview)
         .onChange(async (value) => {
@@ -828,8 +828,8 @@ class CrispAnnotationsSettingTab extends PluginSettingTab {
         }));
 
     new Setting(editingBody)
-      .setName("Remember last choice")
-      .setDesc("Reuse your last placement, color and highlight choices for new annotations.")
+      .setName("记住上次选择")
+      .setDesc("新建标注时复用上次的位置、颜色与高亮选择。")
       .addToggle((toggle) => toggle
         .setValue(this.plugin.settings.rememberLastChoice)
         .onChange(async (value) => {

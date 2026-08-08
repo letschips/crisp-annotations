@@ -34,13 +34,13 @@ describe("QuickAnnotationModal", () => {
     modal.onOpen();
 
     const addButton = Array.from(modal.contentEl.querySelectorAll("button"))
-      .find((button) => button.textContent === "Add note");
+      .find((button) => button.textContent === "添加笔记");
     addButton?.click();
 
     expect(onSubmit).not.toHaveBeenCalled();
     expect(close).not.toHaveBeenCalled();
     expect(modal.contentEl.querySelector(".crisp-ann-quick-modal__error")?.textContent)
-      .toContain("short note");
+      .toContain("一句简短笔记");
     expect(document.activeElement).toBe(
       modal.contentEl.querySelector(".crisp-ann-quick-modal__input"),
     );

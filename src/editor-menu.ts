@@ -33,7 +33,7 @@ export function addAnnotationContextMenuItem<TEditor extends AnnotationEditor>(
     return false;
   }
 
-  const mainTitle = existing ? "Edit annotation" : "Add annotation";
+  const mainTitle = existing ? "编辑标注" : "添加标注";
   menu.addItem((item) => item
     .setTitle(mainTitle)
     .setIcon(CRISP_ANNOTATION_ICON_NAME)
@@ -58,4 +58,3 @@ export function addAnnotationContextMenuItem<TEditor extends AnnotationEditor>(
   }
   return true;
 }
-

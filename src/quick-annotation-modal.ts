@@ -28,12 +28,12 @@ export class QuickAnnotationModal extends Modal {
 
     contentEl.createEl("h3", {
       cls: "crisp-ann-quick-modal__title",
-      text: "Quick annotation",
+      text: "快速标注",
     });
 
     contentEl.createDiv({
       cls: "crisp-ann-quick-modal__target",
-      text: `Target: "${this.targetText}"`,
+      text: `目标: "${this.targetText}"`,
     });
 
     new Setting(contentEl)
@@ -41,7 +41,7 @@ export class QuickAnnotationModal extends Modal {
       .addText((text) => {
         this.inputComponent = text;
         text
-          .setPlaceholder("Type your note and press Enter...")
+          .setPlaceholder("输入笔记后按 Enter...")
           .setValue(this.noteValue)
           .onChange((val) => {
             this.noteValue = val;
@@ -62,12 +62,12 @@ export class QuickAnnotationModal extends Modal {
     });
 
     const footerEl = contentEl.createDiv("crisp-ann-quick-modal__footer");
-    const cancelBtn = footerEl.createEl("button", { text: "Cancel" });
+    const cancelBtn = footerEl.createEl("button", { text: "取消" });
     cancelBtn.addEventListener("click", () => this.close());
 
     const submitBtn = footerEl.createEl("button", {
       cls: "mod-cta",
-      text: "Add note",
+      text: "添加笔记",
     });
     submitBtn.addEventListener("click", () => this.submit());
 
@@ -81,7 +81,7 @@ export class QuickAnnotationModal extends Modal {
     const note = this.noteValue.trim();
     if (!note) {
       if (this.errorEl) {
-        this.errorEl.textContent = "Add a short note to continue.";
+        this.errorEl.textContent = "请先写一句简短笔记。";
       }
       this.inputComponent?.inputEl.focus();
       return;

@@ -13,15 +13,15 @@ describe("buildAnnotationModalPresentation", () => {
       arrowStyle: "spiral",
       arrowStrokeStyle: "dashed",
     })).toEqual({
-      placementDescription: "Preferred side; Smart margins may rebalance it.",
-      placementName: "Preferred placement",
-      summary: "Smart margins · Coiled spiral · Dashed · Bundled handwriting",
+      placementDescription: "首选侧；智能页边可能重新平衡它的位置。",
+      placementName: "首选位置",
+      summary: "智能页边 · 螺旋 · 虚线 · 内置手写体",
     });
   });
 
   it("keeps ordinary placement language for inline mode", () => {
     expect(buildAnnotationModalPresentation(DEFAULT_SETTINGS).placementName)
-      .toBe("Placement");
+      .toBe("位置");
   });
 });
 
@@ -66,7 +66,7 @@ describe("AnnotationModal choices", () => {
     const selectedPlacement = placementButtons.find(
       (button) => button.getAttribute("aria-pressed") === "true",
     );
-    expect(selectedPlacement?.title).toContain("Right");
+    expect(selectedPlacement?.title).toContain("右侧");
 
     placementButtons[0]?.click();
     expect(placementButtons[0]?.getAttribute("aria-pressed")).toBe("true");

@@ -154,9 +154,9 @@ describe("CrispAnnotationsOutlineView", () => {
       expect(PLACE_LABELS[place]).toBeTruthy();
       expect(typeof PLACE_LABELS[place]).toBe("string");
     }
-    expect(PLACE_LABELS.right).toBe("Right");
-    expect(PLACE_LABELS.bottom).toBe("Below");
-    expect(PLACE_LABELS["top-left"]).toBe("Above left");
+    expect(PLACE_LABELS.right).toBe("右侧");
+    expect(PLACE_LABELS.bottom).toBe("下方");
+    expect(PLACE_LABELS["top-left"]).toBe("左上方");
   });
 
   it("constructs with correct view type, display text, and icon", () => {
@@ -166,7 +166,7 @@ describe("CrispAnnotationsOutlineView", () => {
     );
 
     expect(view.getViewType()).toBe(OUTLINE_VIEW_TYPE);
-    expect(view.getDisplayText()).toBe("Annotations outline");
+    expect(view.getDisplayText()).toBe("标注大纲");
     expect(view.getIcon()).toBe("message-square-text");
   });
 
@@ -187,7 +187,7 @@ describe("CrispAnnotationsOutlineView", () => {
     const place = container.querySelector(".crisp-ann-outline-item__place");
     expect(target?.textContent).toBe("重要");
     expect(note?.textContent).toBe("关键注释");
-    expect(place?.textContent).toBe("Above right");
+    expect(place?.textContent).toBe("右上方");
 
     const item = items[0] as HTMLElement;
     expect(item.getAttribute("data-crisp-ann-from")).toBeTruthy();
@@ -206,7 +206,7 @@ describe("CrispAnnotationsOutlineView", () => {
     expect(container.querySelector(".crisp-ann-outline-empty")).toBeTruthy();
     expect(
       container.querySelector(".crisp-ann-outline-empty")?.textContent,
-    ).toContain("No annotations");
+    ).toContain("当前文档没有标注");
   });
 
   it("shows 'No highlight' badge for mark=off annotations", () => {
@@ -220,7 +220,7 @@ describe("CrispAnnotationsOutlineView", () => {
     view.refresh('==无高亮=={ann note="说明" mark=off}');
     expect(
       container.querySelector(".crisp-ann-outline-item__no-mark")?.textContent,
-    ).toBe("No highlight");
+    ).toBe("无高亮");
 
     view.refresh('==有高亮=={ann note="说明" mark=on}');
     expect(

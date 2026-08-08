@@ -2,51 +2,51 @@ import type { AnnotationPlace, AnnotationColor } from "./annotation-syntax";
 import type { AnnotationFontMode, ArrowStyle, ArrowStrokeStyle, AnnotationLayout } from "./settings";
 
 export const PLACE_LABELS: Record<AnnotationPlace, string> = {
-  top: "Above",
-  "top-right": "Above right",
-  right: "Right",
-  "bottom-right": "Below right",
-  bottom: "Below",
-  "bottom-left": "Below left",
-  left: "Left",
-  "top-left": "Above left",
+  top: "上方",
+  "top-right": "右上方",
+  right: "右侧",
+  "bottom-right": "右下方",
+  bottom: "下方",
+  "bottom-left": "左下方",
+  left: "左侧",
+  "top-left": "左上方",
 };
 
 export const COLOR_LABELS: Record<AnnotationColor, string> = {
-  neutral: "Neutral",
-  amber: "Amber",
-  orange: "Orange",
-  blue: "Blue",
-  green: "Green",
-  red: "Red",
-  purple: "Purple",
-  rainbow: "Rainbow",
-  custom: "Custom",
+  neutral: "中性",
+  amber: "琥珀",
+  orange: "橙色",
+  blue: "蓝色",
+  green: "绿色",
+  red: "红色",
+  purple: "紫色",
+  rainbow: "彩虹",
+  custom: "自定义",
 };
 
 export const ARROW_STYLE_LABELS: Record<ArrowStyle, string> = {
-  "hand-drawn": "Hand-drawn",
-  straight: "Straight",
-  "custom-curve": "Custom curve",
-  spiral: "Coiled spiral",
-  wavy: "Wavy line",
-  "double-underline": "Double line",
+  "hand-drawn": "手绘",
+  straight: "直线",
+  "custom-curve": "自定义曲线",
+  spiral: "螺旋",
+  wavy: "波浪线",
+  "double-underline": "双线",
 };
 
 export const FONT_MODE_LABELS: Record<AnnotationFontMode, string> = {
-  handwritten: "Bundled handwriting",
-  body: "Follow body text",
-  custom: "Custom font",
+  handwritten: "内置手写体",
+  body: "跟随正文",
+  custom: "自定义字体",
 };
 
 export const ARROW_STROKE_LABELS: Record<ArrowStrokeStyle, string> = {
-  solid: "Solid",
-  dashed: "Dashed",
+  solid: "实线",
+  dashed: "虚线",
 };
 
 export const ANNOTATION_LAYOUT_LABELS: Record<AnnotationLayout, string> = {
-  inline: "Inline",
-  "smart-margins": "Smart margins",
-  "left-margin": "Left margin",
-  "right-margin": "Right margin",
+  inline: "内联",
+  "smart-margins": "智能页边",
+  "left-margin": "左侧页边",
+  "right-margin": "右侧页边",
 };

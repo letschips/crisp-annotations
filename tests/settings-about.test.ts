@@ -15,7 +15,7 @@ describe("settings About card", () => {
     const card = container.querySelector(".crisp-ann-about");
     const author = card?.querySelector<HTMLAnchorElement>("a");
     expect(card?.querySelector("h3")?.textContent).toBe(
-      "About Crisp Annotations",
+      "关于 Crisp Annotations",
     );
     expect(card?.textContent).toContain(
       "把高亮、批注与思考线索自然留在 Obsidian 笔记中。",

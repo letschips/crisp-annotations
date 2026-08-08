@@ -32,20 +32,20 @@ export class AnnotationModal extends Modal {
   }
 
   onOpen(): void {
-    this.setTitle(this.editing ? "Edit annotation" : "Add annotation");
+    this.setTitle(this.editing ? "编辑标注" : "添加标注");
     this.modalEl.addClass("crisp-ann-dialog");
     this.contentEl.addClass("crisp-ann-modal");
     const presentation = buildAnnotationModalPresentation(this.settings);
 
     new Setting(this.contentEl)
-      .setName("Note")
-      .setDesc("Short label shown in Reading mode.")
+      .setName("笔记")
+      .setDesc("阅读模式下显示的简短标签。")
       .setClass("crisp-ann-modal__field")
       .setClass("crisp-ann-modal__field--note")
       .addTextArea((text) => {
         this.noteInput = text;
         text
-          .setPlaceholder("Write a short note…")
+          .setPlaceholder("写一句简短笔记…")
           .setValue(this.draft.note)
           .onChange((value) => {
             this.draft.note = value;
@@ -119,8 +119,8 @@ export class AnnotationModal extends Modal {
 
     // Color Swatches
     const colorSetting = new Setting(choiceSection)
-      .setName("Color")
-      .setDesc("Saved with this annotation.")
+      .setName("颜色")
+      .setDesc("随标注一起保存。")
       .setClass("crisp-ann-modal__field");
 
     const colorContainer = colorSetting.controlEl.createDiv("crisp-ann-modal__color-container");
@@ -157,8 +157,8 @@ export class AnnotationModal extends Modal {
     }
 
     new Setting(this.contentEl)
-      .setName("Highlight target")
-      .setDesc("Turn off when the target already has its own fill.")
+      .setName("高亮标注目标")
+      .setDesc("当目标本身已有填充时可关闭。")
       .setClass("crisp-ann-modal__highlight")
       .addToggle((toggle) => toggle
         .setValue(this.draft.mark)
@@ -178,15 +178,15 @@ export class AnnotationModal extends Modal {
     }
     const appearanceHint = this.contentEl.ownerDocument.createElement("div");
     appearanceHint.className = "crisp-ann-modal__appearance-hint";
-    appearanceHint.textContent = "Global reading appearance";
+    appearanceHint.textContent = "全局阅读外观";
     appearanceDescription.append(appearanceHint);
 
     new Setting(this.contentEl)
-      .setName("Reading appearance")
+      .setName("阅读外观")
       .setDesc(appearanceDescription)
       .setClass("crisp-ann-modal__appearance")
       .addButton((button) => button
-        .setButtonText("Appearance")
+        .setButtonText("外观")
         .onClick(() => {
           this.onOpenSettings();
         }));
@@ -194,11 +194,11 @@ export class AnnotationModal extends Modal {
     new Setting(this.contentEl)
       .setClass("crisp-ann-modal__footer")
       .addButton((button) => button
-        .setButtonText("Cancel")
+        .setButtonText("取消")
         .onClick(() => this.close()))
       .addButton((button) => button
         .setCta()
-        .setButtonText(this.editing ? "Save changes" : "Add annotation")
+        .setButtonText(this.editing ? "保存修改" : "添加标注")
         .onClick(() => this.submit()));
 
     this.scope.register(["Mod"], "Enter", (event) => {

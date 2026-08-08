@@ -66,7 +66,7 @@ describe("addAnnotationContextMenuItem", () => {
     expect(addAnnotationContextMenuItem(menu, editor, open)).toBe(true);
     expect(menu.items).toHaveLength(1);
     expect(menu.items[0]).toMatchObject({
-      title: "Add annotation",
+      title: "添加标注",
       icon: CRISP_ANNOTATION_ICON_NAME,
       section: "action",
     });
@@ -99,7 +99,7 @@ describe("addAnnotationContextMenuItem", () => {
     )).toBe(true);
 
     expect(menu.items).toHaveLength(3);
-    expect(menu.items[0].title).toBe("Edit annotation");
+    expect(menu.items[0].title).toBe("编辑标注");
     expect(menu.items[1].title).toBe("Turn off target highlight");
     expect(menu.items[2].title).toBe("Remove annotation");
 
@@ -107,4 +107,3 @@ describe("addAnnotationContextMenuItem", () => {
     expect(remove).toHaveBeenCalledWith(editor);
   });
 });
-
