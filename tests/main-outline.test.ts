@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { App, WorkspaceLeaf } from "obsidian";
 import CrispAnnotationsPlugin from "../src/main";
 import {
@@ -6,6 +6,8 @@ import {
   OUTLINE_VIEW_TYPE,
 } from "../src/outline-view";
 import { DEFAULT_SETTINGS } from "../src/settings";
+
+vi.mock("../src/icons", () => ({ registerIcons: vi.fn() }));
 
 const SOURCE = '正文 ==重点=={ann note="来自当前文档" place=right color=blue}';
 
@@ -22,6 +24,7 @@ interface TestWorkspace {
   markdownLeaf: WorkspaceLeaf;
   outlineLeaf: WorkspaceLeaf;
   outlineLeaves: WorkspaceLeaf[];
+  listeners: Map<string, (...args: never[]) => void>;
 }
 
 function createWorkspace(): TestWorkspace {
@@ -38,6 +41,7 @@ function createWorkspace(): TestWorkspace {
     setViewState: async () => {},
   } as unknown as WorkspaceLeaf;
   const outlineLeaves: WorkspaceLeaf[] = [];
+  const listeners = new Map<string, (...args: never[]) => void>();
   const outlineLeaf = {
     app: null,
     view: {
@@ -69,7 +73,10 @@ function createWorkspace(): TestWorkspace {
     revealLeaf: (leaf: WorkspaceLeaf) => {
       workspace.activeLeaf = leaf;
     },
-    on: () => ({}),
+    on: (event: string, callback: (...args: never[]) => void) => {
+      listeners.set(event, callback);
+      return {};
+    },
     getLeaf: () => markdownLeaf,
     updateOptions: () => {},
     iterateAllLeaves: () => {},
@@ -90,10 +97,15 @@ function createWorkspace(): TestWorkspace {
     markdownLeaf,
     outlineLeaf,
     outlineLeaves,
+    listeners,
   };
 }
 
 describe("annotation outline lifecycle", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it("opens with annotations from the markdown leaf that launched it", async () => {
     const { app, outlineLeaf } = createWorkspace();
     const manifest = {
@@ -151,5 +163,38 @@ describe("annotation outline lifecycle", () => {
     expect(appearanceDocument.body.hasAttribute("data-crisp-ann-theme")).toBe(
       false,
     );
+  });
+
+  it("does not let a stale editor debounce overwrite a newly active leaf", async () => {
+    vi.useFakeTimers();
+    const { app, markdownLeaf, listeners } = createWorkspace();
+    const manifest = {
+      id: "crisp-annotations",
+      name: "Crisp Annotations",
+      version: "1.4.15",
+      author: "letschips",
+      minAppVersion: "1.5.0",
+      description: "Hand-drawn inline annotations for Obsidian Markdown.",
+    };
+    const plugin = new CrispAnnotationsPlugin(app, manifest);
+    plugin.app = app;
+    plugin.manifest = manifest;
+    await plugin.onload();
+    const refresh = vi.spyOn(
+      plugin as unknown as {
+        refreshOutlineViews(source?: string, leaf?: WorkspaceLeaf): void;
+      },
+      "refreshOutlineViews",
+    );
+
+    listeners.get("editor-change")?.(
+      { getValue: () => "旧文档" } as never,
+      markdownLeaf.view as never,
+    );
+    listeners.get("active-leaf-change")?.(markdownLeaf as never);
+    await vi.advanceTimersByTimeAsync(250);
+
+    expect(refresh).toHaveBeenCalledOnce();
+    expect(refresh).toHaveBeenLastCalledWith(SOURCE, markdownLeaf);
   });
 });

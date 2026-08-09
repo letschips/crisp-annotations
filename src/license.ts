@@ -23,6 +23,17 @@ export const CRISP_PUBLIC_KEY_PEM = `-----BEGIN PUBLIC KEY-----
 MCowBQYDK2VwAyEAiz41HIDpD59SH3DjKnovUO+EEhTJXjvmiug/ev9t4ZQ=
 -----END PUBLIC KEY-----`;
 
+export const CRISP_LICENSE_PRODUCTS = [
+  "Crisp Suite",
+  "Crisp Organize",
+  "Crisp ASR",
+  "Crisp Annotations",
+  "Crisp File Explorer",
+  "Crisp Focus",
+  "Crisp Reading Rail",
+  "Crisp Base",
+] as const;
+
 
 export function base64UrlToUint8Array(base64url: string): Uint8Array {
   const base64 = base64url.replace(/-/g, "+").replace(/_/g, "/");
@@ -82,8 +93,7 @@ export async function verifyLicenseCode(
     const payloadJson = new TextDecoder().decode(base64UrlToUint8Array(payloadBase64));
     const payload = JSON.parse(payloadJson) as LicensePayload;
 
-    const validProducts = ["Crisp Suite", "Crisp ASR", "Crisp Annotations", "Crisp File Explorer", "Crisp Focus", "Crisp Reading Rail"];
-    if (!validProducts.includes(payload.product)) {
+    if (!(CRISP_LICENSE_PRODUCTS as readonly string[]).includes(payload.product)) {
       return { valid: false, reason: "授权码不属于 Crisp 系列插件" };
     }
 

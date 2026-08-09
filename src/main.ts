@@ -136,6 +136,7 @@ export default class CrispAnnotationsPlugin extends Plugin {
     }));
 
     this.registerEvent(this.app.workspace.on("active-leaf-change", (leaf) => {
+      this.cancelOutlineRefresh();
       const context = this.getMarkdownContext(leaf);
       if (context) {
         this.lastMarkdownLeaf = context.leaf;
@@ -153,9 +154,7 @@ export default class CrispAnnotationsPlugin extends Plugin {
         this.lastMarkdownLeaf = sourceLeaf;
       }
       const source = editor.getValue();
-      if (this.outlineRefreshTimer !== null) {
-        clearTimeout(this.outlineRefreshTimer);
-      }
+      this.cancelOutlineRefresh();
       this.outlineRefreshTimer = setTimeout(() => {
         this.outlineRefreshTimer = null;
         this.refreshOutlineViews(source, sourceLeaf);
@@ -173,10 +172,7 @@ export default class CrispAnnotationsPlugin extends Plugin {
   }
 
   onunload(): void {
-    if (this.outlineRefreshTimer !== null) {
-      clearTimeout(this.outlineRefreshTimer);
-      this.outlineRefreshTimer = null;
-    }
+    this.cancelOutlineRefresh();
     this.marginLayout.destroy();
     for (const appearanceDocument of this.appearanceDocuments) {
       appearanceDocument.body.removeAttribute("data-crisp-ann-theme");
@@ -184,6 +180,14 @@ export default class CrispAnnotationsPlugin extends Plugin {
       clearArrowAppearanceSettings(appearanceDocument.body.style);
     }
     this.appearanceDocuments.clear();
+  }
+
+  private cancelOutlineRefresh(): void {
+    if (this.outlineRefreshTimer === null) {
+      return;
+    }
+    clearTimeout(this.outlineRefreshTimer);
+    this.outlineRefreshTimer = null;
   }
 
   applyAppearanceSettings(): void {
