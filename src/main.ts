@@ -6,6 +6,7 @@ import {
   PluginSettingTab,
   Setting,
   type TextComponent,
+  type TFile,
   type WorkspaceLeaf,
 } from "obsidian";
 import { AnnotationModal } from "./annotation-modal";
@@ -65,6 +66,10 @@ import {
   PLACE_LABELS,
 } from "./constants";
 import { normalizeAnnotationTarget, validateAnnotationTarget } from "./validation";
+import {
+  VaultAnnotationIndex,
+  type VaultMarkdownFile,
+} from "./vault-annotation-index";
 
 export default class CrispAnnotationsPlugin extends Plugin {
   settings: CrispAnnotationsSettings = { ...DEFAULT_SETTINGS };
@@ -72,10 +77,20 @@ export default class CrispAnnotationsPlugin extends Plugin {
   private readonly marginLayout = new MarginLayoutManager(() => this.settings);
   private lastMarkdownLeaf: WorkspaceLeaf | null = null;
   private outlineRefreshTimer: ReturnType<typeof setTimeout> | null = null;
+  private vaultAnnotationIndex: VaultAnnotationIndex | null = null;
+  private vaultIndexReady = false;
+  private vaultIndexBuild: Promise<void> | null = null;
 
   async onload(): Promise<void> {
     registerIcons();
     this.settings = normalizeSettings(await this.loadData());
+    this.vaultAnnotationIndex = new VaultAnnotationIndex(async (file) => {
+      const vaultFile = this.app.vault.getFileByPath(file.path);
+      if (!vaultFile) {
+        throw new Error(`Markdown file is no longer available: ${file.path}`);
+      }
+      return this.app.vault.cachedRead(vaultFile);
+    });
     this.applyAppearanceSettings();
     this.registerEvent(this.app.workspace.on(
       "window-open",
@@ -96,8 +111,41 @@ export default class CrispAnnotationsPlugin extends Plugin {
 
     this.registerView(
       OUTLINE_VIEW_TYPE,
-      (leaf: WorkspaceLeaf) => new CrispAnnotationsOutlineView(leaf, () => this.settings),
+      (leaf: WorkspaceLeaf) => new CrispAnnotationsOutlineView(
+        leaf,
+        () => this.settings,
+        () => { void this.ensureVaultIndex(); },
+      ),
     );
+
+    this.registerEvent(this.app.vault.on("create", (file) => {
+      if (this.isMarkdownFile(file)) {
+        void this.updateVaultIndexFile(file);
+      }
+    }));
+    this.registerEvent(this.app.vault.on("modify", (file) => {
+      if (this.isMarkdownFile(file)) {
+        void this.updateVaultIndexFile(file);
+      }
+    }));
+    this.registerEvent(this.app.vault.on("delete", (file) => {
+      if (!this.vaultIndexReady || !this.vaultAnnotationIndex) {
+        return;
+      }
+      this.vaultAnnotationIndex.remove(file.path);
+      this.refreshVaultOutlineViews();
+    }));
+    this.registerEvent(this.app.vault.on("rename", (file, oldPath) => {
+      if (!this.vaultIndexReady || !this.vaultAnnotationIndex) {
+        return;
+      }
+      if (this.isMarkdownFile(file)) {
+        this.vaultAnnotationIndex.rename(oldPath, this.toVaultMarkdownFile(file));
+      } else {
+        this.vaultAnnotationIndex.remove(oldPath);
+      }
+      this.refreshVaultOutlineViews();
+    }));
 
     this.addCommand({
       id: "add-or-edit-annotation",
@@ -111,7 +159,7 @@ export default class CrispAnnotationsPlugin extends Plugin {
     });
     this.addCommand({
       id: "open-annotation-outline",
-      name: "Open annotations outline",
+      name: "Open annotation center",
       callback: () => this.openAnnotationOutline(),
     });
     this.addCommand({
@@ -154,6 +202,10 @@ export default class CrispAnnotationsPlugin extends Plugin {
         this.lastMarkdownLeaf = sourceLeaf;
       }
       const source = editor.getValue();
+      const sourceFile = (sourceLeaf?.view as { file?: TFile } | undefined)?.file;
+      if (sourceFile) {
+        void this.updateVaultIndexFile(sourceFile, source);
+      }
       this.cancelOutlineRefresh();
       this.outlineRefreshTimer = setTimeout(() => {
         this.outlineRefreshTimer = null;
@@ -272,6 +324,7 @@ export default class CrispAnnotationsPlugin extends Plugin {
   }
 
   private async openAnnotationOutline(): Promise<void> {
+    await this.ensureVaultIndex();
     const context = this.getMarkdownContext();
     if (context) {
       this.lastMarkdownLeaf = context.leaf;
@@ -281,6 +334,9 @@ export default class CrispAnnotationsPlugin extends Plugin {
       const view = leaves[0].view;
       if (view instanceof CrispAnnotationsOutlineView && context) {
         view.refresh(context.source, context.leaf);
+      }
+      if (view instanceof CrispAnnotationsOutlineView) {
+        view.refreshVault(this.vaultAnnotationIndex?.getEntries() ?? []);
       }
       this.app.workspace.revealLeaf(leaves[0]);
       return;
@@ -295,7 +351,99 @@ export default class CrispAnnotationsPlugin extends Plugin {
       if (view instanceof CrispAnnotationsOutlineView && context) {
         view.refresh(context.source, context.leaf);
       }
+      if (view instanceof CrispAnnotationsOutlineView) {
+        view.refreshVault(this.vaultAnnotationIndex?.getEntries() ?? []);
+      }
       this.app.workspace.revealLeaf(leaf);
+    }
+  }
+
+  private isMarkdownFile(file: { path: string }): file is TFile {
+    return (file as { extension?: string }).extension === "md";
+  }
+
+  private toVaultMarkdownFile(file: TFile): VaultMarkdownFile {
+    return {
+      path: file.path,
+      name: file.name,
+      basename: file.basename,
+    };
+  }
+
+  private async ensureVaultIndex(): Promise<void> {
+    if (this.vaultIndexReady) {
+      this.refreshVaultOutlineViews();
+      return;
+    }
+    if (!this.vaultAnnotationIndex) {
+      return;
+    }
+    if (!this.vaultIndexBuild) {
+      this.setVaultOutlineLoading(true);
+      this.vaultIndexBuild = this.vaultAnnotationIndex
+        .rebuild(this.app.vault.getMarkdownFiles().map((file) => (
+          this.toVaultMarkdownFile(file)
+        )))
+        .then(async () => {
+          if (!this.vaultAnnotationIndex) {
+            return;
+          }
+          await Promise.all(this.app.workspace.getLeavesOfType("markdown").map(
+            async (leaf) => {
+              const view = leaf.view as {
+                file?: TFile;
+                editor?: { getValue(): string };
+              };
+              if (!view.file || !view.editor) {
+                return;
+              }
+              await this.vaultAnnotationIndex?.update(
+                this.toVaultMarkdownFile(view.file),
+                view.editor.getValue(),
+              );
+            },
+          ));
+        })
+        .then(() => {
+          this.vaultIndexReady = true;
+          this.refreshVaultOutlineViews();
+        })
+        .finally(() => {
+          this.vaultIndexBuild = null;
+          this.setVaultOutlineLoading(false);
+        });
+    }
+    await this.vaultIndexBuild;
+  }
+
+  private async updateVaultIndexFile(file: TFile, source?: string): Promise<void> {
+    if (!this.vaultIndexReady || !this.vaultAnnotationIndex) {
+      return;
+    }
+    try {
+      await this.vaultAnnotationIndex.update(this.toVaultMarkdownFile(file), source);
+    } catch {
+      return;
+    }
+    this.refreshVaultOutlineViews();
+  }
+
+  private refreshVaultOutlineViews(): void {
+    const entries = this.vaultAnnotationIndex?.getEntries() ?? [];
+    for (const leaf of this.app.workspace.getLeavesOfType(OUTLINE_VIEW_TYPE)) {
+      const view = leaf.view;
+      if (view instanceof CrispAnnotationsOutlineView) {
+        view.refreshVault(entries);
+      }
+    }
+  }
+
+  private setVaultOutlineLoading(loading: boolean): void {
+    for (const leaf of this.app.workspace.getLeavesOfType(OUTLINE_VIEW_TYPE)) {
+      const view = leaf.view;
+      if (view instanceof CrispAnnotationsOutlineView) {
+        view.setVaultLoading(loading);
+      }
     }
   }
 

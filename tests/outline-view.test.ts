@@ -8,6 +8,8 @@ import {
 import { PLACE_LABELS } from "../src/constants";
 import type { CrispAnnotationsSettings } from "../src/settings";
 import type { WorkspaceLeaf } from "obsidian";
+import { findAnnotations } from "../src/annotation-syntax";
+import type { VaultAnnotationEntry } from "../src/vault-annotation-index";
 
 /**
  * Adds Obsidian's extension methods (empty, createDiv, createSpan) to any HTMLElement.
@@ -82,6 +84,21 @@ function makeDummySettings(): CrispAnnotationsSettings {
     lastUsedPlace: "bottom",
     lastUsedColor: "amber",
     lastUsedMark: true,
+  };
+}
+
+function vaultEntry(
+  path: string,
+  source: string,
+): VaultAnnotationEntry {
+  const basename = path.split("/").pop()?.replace(/\.md$/, "") ?? path;
+  const annotation = findAnnotations(source)[0];
+  if (!annotation) {
+    throw new Error(`Test fixture has no annotation: ${source}`);
+  }
+  return {
+    file: { path, basename, name: `${basename}.md` },
+    annotation,
   };
 }
 
@@ -166,8 +183,143 @@ describe("CrispAnnotationsOutlineView", () => {
     );
 
     expect(view.getViewType()).toBe(OUTLINE_VIEW_TYPE);
-    expect(view.getDisplayText()).toBe("标注大纲");
+    expect(view.getDisplayText()).toBe("标注中心");
     expect(view.getIcon()).toBe("message-square-text");
+  });
+
+  it("lets readers switch between current-document and vault scopes", () => {
+    const container = createObsidianEl();
+    const view = new CrispAnnotationsOutlineView(
+      makeDummyLeaf(),
+      makeDummySettings,
+    );
+    Object.defineProperty(view, "containerEl", { value: container });
+
+    view.refresh('==当前=={ann note="当前文档" color=blue}');
+
+    const scopeButtons = container.querySelectorAll<HTMLButtonElement>(
+      ".crisp-ann-outline-scope__button",
+    );
+    expect(scopeButtons).toHaveLength(2);
+    expect(scopeButtons[0].textContent).toBe("当前文档");
+    expect(scopeButtons[0].getAttribute("aria-pressed")).toBe("true");
+    expect(scopeButtons[1].textContent).toBe("整个仓库");
+    expect(scopeButtons[1].getAttribute("aria-pressed")).toBe("false");
+  });
+
+  it("keeps vault results separate from the current document", () => {
+    const container = createObsidianEl();
+    const view = new CrispAnnotationsOutlineView(
+      makeDummyLeaf(),
+      makeDummySettings,
+    );
+    Object.defineProperty(view, "containerEl", { value: container });
+
+    view.refresh('==当前=={ann note="只属于当前文档" color=blue}');
+    const vaultButton = container.querySelectorAll<HTMLButtonElement>(
+      ".crisp-ann-outline-scope__button",
+    )[1];
+    vaultButton.click();
+
+    expect(container.textContent).not.toContain("只属于当前文档");
+    expect(container.querySelector(".crisp-ann-outline-empty")?.textContent).toContain(
+      "仓库中还没有标注",
+    );
+  });
+
+  it("shows an honest loading state while the vault index is being built", () => {
+    const container = createObsidianEl();
+    const view = new CrispAnnotationsOutlineView(
+      makeDummyLeaf(),
+      makeDummySettings,
+    );
+    Object.defineProperty(view, "containerEl", { value: container });
+    view.setVaultLoading(true);
+    view.refresh("No annotations here");
+
+    container.querySelectorAll<HTMLButtonElement>(
+      ".crisp-ann-outline-scope__button",
+    )[1].click();
+
+    expect(container.querySelector(".crisp-ann-outline-empty")?.textContent).toContain(
+      "正在索引仓库标注",
+    );
+  });
+
+  it("groups vault annotations by file and shows their file paths", () => {
+    const container = createObsidianEl();
+    const view = new CrispAnnotationsOutlineView(
+      makeDummyLeaf(),
+      makeDummySettings,
+    );
+    Object.defineProperty(view, "containerEl", { value: container });
+    view.refreshVault([
+      vaultEntry("Notes/Alpha.md", '==Alpha=={ann note="First" color=blue}'),
+      vaultEntry("Notes/Alpha.md", '==More=={ann note="Second" color=green}'),
+      vaultEntry("Projects/Beta.md", '==Beta=={ann note="Third" color=orange}'),
+    ]);
+
+    view.refresh("No annotations here");
+    container.querySelectorAll<HTMLButtonElement>(
+      ".crisp-ann-outline-scope__button",
+    )[1].click();
+
+    expect(container.querySelectorAll(".crisp-ann-outline-file-group")).toHaveLength(2);
+    expect(Array.from(container.querySelectorAll(
+      ".crisp-ann-outline-file-group__path",
+    )).map((element) => element.textContent)).toEqual([
+      "Notes/Alpha.md",
+      "Projects/Beta.md",
+    ]);
+    expect(container.querySelectorAll(".crisp-ann-outline-item")).toHaveLength(3);
+  });
+
+  it("filters vault annotations by search text and color", () => {
+    const container = createObsidianEl();
+    document.body.appendChild(container);
+    const view = new CrispAnnotationsOutlineView(
+      makeDummyLeaf(),
+      makeDummySettings,
+    );
+    Object.defineProperty(view, "containerEl", { value: container });
+    view.refreshVault([
+      vaultEntry(
+        "Research/Displays.md",
+        '==Framebuffer=={ann note="Memory insight" color=blue}',
+      ),
+      vaultEntry(
+        "Research/Displays.md",
+        '==Phosphor=={ann note="Screen detail" color=orange}',
+      ),
+    ]);
+    view.refresh("No annotations here");
+    container.querySelectorAll<HTMLButtonElement>(
+      ".crisp-ann-outline-scope__button",
+    )[1].click();
+
+    const search = container.querySelector<HTMLInputElement>(
+      ".crisp-ann-outline-search__input",
+    );
+    expect(search).toBeTruthy();
+    if (!search) return;
+    search.focus();
+    search.value = "memory";
+    search.dispatchEvent(new Event("input"));
+    expect(container.ownerDocument.activeElement).toBe(
+      container.querySelector(".crisp-ann-outline-search__input"),
+    );
+    expect(container.querySelectorAll(".crisp-ann-outline-item")).toHaveLength(1);
+    expect(container.textContent).toContain("Framebuffer");
+
+    const color = container.querySelector<HTMLSelectElement>(
+      ".crisp-ann-outline-search__color",
+    );
+    expect(color).toBeTruthy();
+    if (!color) return;
+    color.value = "orange";
+    color.dispatchEvent(new Event("change"));
+    expect(container.querySelectorAll(".crisp-ann-outline-item")).toHaveLength(0);
+    expect(container.textContent).toContain("没有匹配的标注");
   });
 
   it("renders annotation items from parsed source", () => {
@@ -226,6 +378,65 @@ describe("CrispAnnotationsOutlineView", () => {
     expect(
       container.querySelector(".crisp-ann-outline-item__no-mark"),
     ).toBeNull();
+  });
+
+  it("opens a vault result in a Markdown tab and jumps to its target", async () => {
+    const container = createObsidianEl();
+    const targetFile = {
+      path: "Research/Displays.md",
+      name: "Displays.md",
+      basename: "Displays",
+    };
+    const openFile = vi.fn(async () => {});
+    const setCursor = vi.fn();
+    const scrollIntoView = vi.fn();
+    const targetLeaf = {
+      view: {
+        file: targetFile,
+        editor: {
+          offsetToPos: (offset: number) => ({ line: 0, ch: offset }),
+          setCursor,
+          scrollIntoView,
+        },
+      },
+      openFile,
+    };
+    const outlineLeaf = makeDummyLeaf();
+    outlineLeaf.app.vault = {
+      getAbstractFileByPath: (path: string) => path === targetFile.path ? targetFile : null,
+    };
+    outlineLeaf.app.workspace = {
+      activeLeaf: outlineLeaf,
+      getLeavesOfType: () => [],
+      getLeaf: () => targetLeaf,
+      revealLeaf: vi.fn(),
+      setActiveLeaf: vi.fn(),
+    };
+    const view = new CrispAnnotationsOutlineView(
+      outlineLeaf,
+      makeDummySettings,
+    );
+    Object.defineProperty(view, "containerEl", { value: container });
+    view.refreshVault([
+      vaultEntry(
+        targetFile.path,
+        '前 ==Framebuffer=={ann note="Memory insight" color=blue} 后',
+      ),
+    ]);
+    view.refresh("No annotations here");
+    container.querySelectorAll<HTMLButtonElement>(
+      ".crisp-ann-outline-scope__button",
+    )[1].click();
+
+    (container.querySelector(".crisp-ann-outline-item") as HTMLElement).click();
+    await vi.waitFor(() => expect(openFile).toHaveBeenCalledOnce());
+
+    expect(openFile).toHaveBeenCalledWith(targetFile, { active: true });
+    expect(setCursor).toHaveBeenCalledWith({ line: 0, ch: 4 });
+    expect(scrollIntoView).toHaveBeenCalledWith({
+      from: { line: 0, ch: 4 },
+      to: { line: 0, ch: 15 },
+    }, true);
   });
 
   it("navigates back to the markdown leaf that supplied the outline", () => {

@@ -133,6 +133,15 @@ describe("plugin styles", () => {
     expect(styles).toContain(".crisp-ann-outline-item__note");
   });
 
+  it("styles the vault scope, search controls, and file groups", () => {
+    expect(styles).toContain(".crisp-ann-outline-scope");
+    expect(styles).toContain('.crisp-ann-outline-scope__button[aria-pressed="true"]');
+    expect(styles).toContain(".crisp-ann-outline-search__input");
+    expect(styles).toContain(".crisp-ann-outline-search__color");
+    expect(styles).toContain(".crisp-ann-outline-file-group__header");
+    expect(styles).toContain(".crisp-ann-outline-file-group__path");
+  });
+
   it("keeps choice motion explicit and fine-pointer gated", () => {
     expect(styles).not.toMatch(/transition:\s*all\b/);
     const finePointerBlock = styles.match(

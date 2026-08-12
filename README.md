@@ -7,7 +7,7 @@ Adds hand-drawn arrows and handwritten-style notes to inline Markdown highlights
 - **Inline & Margin Layouts**: Display handwritten notes near target text or automatically layout them in reading margins.
 - **Hand-drawn Arrows & Spirals**: Choose from hand-drawn, coiled spiral, wavy, or straight connectors.
 - **Quick Annotation**: Add or edit annotations via hotkey, context menu, or command palette.
-- **Annotation Outline**: View all annotations in a dedicated sidebar outline tab and jump to targets.
+- **Annotation Center**: Browse the current document or the entire vault, search and filter annotations, then jump directly to targets.
 - **Pure Markdown Storage**: Annotations are saved as standard Markdown syntax `==highlight=={ann note="..."}`.
 
 ## Installation
@@ -18,7 +18,7 @@ Adds hand-drawn arrows and handwritten-style notes to inline Markdown highlights
 
 ## How to Use
 
-1. Select a single line of text in editing mode.
+1. Select one or more lines of text in editing mode.
 2. Right-click and select `Add annotation`, or run `Crisp Annotations: Add or edit annotation` from the command palette.
 3. Fill in the note, choose place direction, color, and whether to keep the mark.
 4. Switch to reading mode to view the rendered hand-drawn annotation.
@@ -42,7 +42,7 @@ Adds hand-drawn arrows and handwritten-style notes to inline Markdown highlights
 
 ## 推荐用法
 
-1. 在编辑模式选择一段单行文字。
+1. 在编辑模式选择一段文字；可跨行选择。
 2. 右键并选择 `Add annotation`，或从命令面板运行 `Crisp Annotations: Add or edit annotation`。
 3. 填写短注释，选择方向、颜色和是否保留高亮。
 4. 切换到阅读模式查看完整效果。
@@ -55,11 +55,12 @@ Adds hand-drawn arrows and handwritten-style notes to inline Markdown highlights
 
 如果只想快速写一句话，可运行 `Crisp Annotations: Quick annotation`：弹出轻量单行输入框，按 Enter 即可完成，并复用最近一次方向、颜色和高亮选择。
 
-## 大纲与导出
+## 标注中心与导出
 
-- 运行 `Crisp Annotations: Open annotations outline`，可在右侧边栏查看当前文档全部标注。点击一条标注会激活对应正文页签、滚动到原文位置，并短暂高亮提示目标。
+- 运行 `Crisp Annotations: Open annotation center`，可在右侧边栏切换查看“当前文档”或“整个仓库”的标注。
+- 全库模式支持搜索原文、标注内容和文件路径，也可以按颜色筛选；结果按文件分组，点击后会打开对应文章、滚动到原文位置并短暂高亮目标。
 - 运行 `Crisp Annotations: Export annotations summary to clipboard`，可把当前文档的目标文字、颜色、方向和注释复制为 Markdown 清单。
-- 大纲会跟随当前 Markdown 文档与编辑内容更新；切到大纲本身不会丢失原文上下文。
+- 标注中心会跟随 Markdown 文件的创建、编辑、重命名与删除增量更新。全库内容只在本地读取和索引，不会发送笔记内容。
 
 ## Markdown 语法
 
@@ -70,7 +71,7 @@ Adds hand-drawn arrows and handwritten-style notes to inline Markdown highlights
 可选字段：
 
 - `place`: `top`、`top-right`、`right`、`bottom-right`、`bottom`、`bottom-left`、`left`、`top-left`
-- `color`: `neutral`、`amber`、`blue`、`green`、`red`、`purple`、`rainbow`、`custom`
+- `color`: `neutral`、`amber`、`orange`、`blue`、`green`、`red`、`purple`、`rainbow`、`custom`
 - `mark`: `on` 或 `off`
 
 手写语法省略字段时，默认是 `place=bottom color=neutral mark=on`。通过命令新建时使用插件设置中的默认值。

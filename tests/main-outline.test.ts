@@ -13,6 +13,12 @@ const SOURCE = '正文 ==重点=={ann note="来自当前文档" place=right colo
 
 interface MarkdownViewShape {
   containerEl: HTMLElement;
+  file: {
+    path: string;
+    name: string;
+    basename: string;
+    extension: string;
+  };
   editor: {
     getValue(): string;
   };
@@ -25,15 +31,23 @@ interface TestWorkspace {
   outlineLeaf: WorkspaceLeaf;
   outlineLeaves: WorkspaceLeaf[];
   listeners: Map<string, (...args: never[]) => void>;
+  vaultListeners: Map<string, (...args: never[]) => void>;
 }
 
 function createWorkspace(): TestWorkspace {
+  const sourceFile = {
+    path: "Current.md",
+    name: "Current.md",
+    basename: "Current",
+    extension: "md",
+  };
   const markdownView: MarkdownViewShape = {
     containerEl: document.createElement("div"),
     editor: {
       getValue: () => SOURCE,
     },
     getViewType: () => "markdown",
+    file: sourceFile,
   };
   const markdownLeaf = {
     app: null,
@@ -42,6 +56,7 @@ function createWorkspace(): TestWorkspace {
   } as unknown as WorkspaceLeaf;
   const outlineLeaves: WorkspaceLeaf[] = [];
   const listeners = new Map<string, (...args: never[]) => void>();
+  const vaultListeners = new Map<string, (...args: never[]) => void>();
   const outlineLeaf = {
     app: null,
     view: {
@@ -84,6 +99,20 @@ function createWorkspace(): TestWorkspace {
   };
   const app = {
     workspace: workspace as unknown as App["workspace"],
+    vault: {
+      getMarkdownFiles: () => [sourceFile],
+      getFileByPath: (path: string) => path === sourceFile.path ? sourceFile : null,
+      cachedRead: async (file: unknown) => {
+        if (file !== sourceFile) {
+          throw new Error("cachedRead requires the vault TFile instance");
+        }
+        return SOURCE;
+      },
+      on: (event: string, callback: (...args: never[]) => void) => {
+        vaultListeners.set(event, callback);
+        return {};
+      },
+    },
     setting: {
       open: () => {},
       openTabById: () => {},
@@ -98,6 +127,7 @@ function createWorkspace(): TestWorkspace {
     outlineLeaf,
     outlineLeaves,
     listeners,
+    vaultListeners,
   };
 }
 
@@ -128,6 +158,140 @@ describe("annotation outline lifecycle", () => {
       ".crisp-ann-outline-item",
     )).toHaveLength(1);
     expect(outlineLeaf.view.containerEl.textContent).toContain("来自当前文档");
+  });
+
+  it("loads the whole-vault index when the outline is opened", async () => {
+    const { app, outlineLeaf } = createWorkspace();
+    const manifest = {
+      id: "crisp-annotations",
+      name: "Crisp Annotations",
+      version: "1.5.0",
+      author: "letschips",
+      minAppVersion: "1.8.0",
+      description: "Hand-drawn inline annotations for Obsidian Markdown.",
+    };
+    const plugin = new CrispAnnotationsPlugin(app, manifest);
+    plugin.app = app;
+    plugin.manifest = manifest;
+    await plugin.onload();
+
+    await (plugin as unknown as {
+      openAnnotationOutline(): Promise<void>;
+    }).openAnnotationOutline();
+    outlineLeaf.view.containerEl.querySelectorAll<HTMLButtonElement>(
+      ".crisp-ann-outline-scope__button",
+    )[1].click();
+
+    expect(outlineLeaf.view.containerEl.textContent).toContain("全库标注 (1)");
+    expect(outlineLeaf.view.containerEl.textContent).toContain("Current.md");
+    expect(outlineLeaf.view.containerEl.textContent).toContain("来自当前文档");
+  });
+
+  it("prefers unsaved editor text over the cached file during initial indexing", async () => {
+    const { app, outlineLeaf } = createWorkspace();
+    Object.assign(app.vault, {
+      cachedRead: async () => "Saved text without annotations",
+    });
+    const manifest = {
+      id: "crisp-annotations",
+      name: "Crisp Annotations",
+      version: "1.5.0",
+      author: "letschips",
+      minAppVersion: "1.8.0",
+      description: "Hand-drawn inline annotations for Obsidian Markdown.",
+    };
+    const plugin = new CrispAnnotationsPlugin(app, manifest);
+    plugin.app = app;
+    plugin.manifest = manifest;
+    await plugin.onload();
+
+    await (plugin as unknown as {
+      openAnnotationOutline(): Promise<void>;
+    }).openAnnotationOutline();
+    outlineLeaf.view.containerEl.querySelectorAll<HTMLButtonElement>(
+      ".crisp-ann-outline-scope__button",
+    )[1].click();
+
+    expect(outlineLeaf.view.containerEl.textContent).toContain("全库标注 (1)");
+    expect(outlineLeaf.view.containerEl.textContent).toContain("来自当前文档");
+  });
+
+  it("updates an open vault outline when a Markdown file changes", async () => {
+    const { app, outlineLeaf, vaultListeners } = createWorkspace();
+    const manifest = {
+      id: "crisp-annotations",
+      name: "Crisp Annotations",
+      version: "1.5.0",
+      author: "letschips",
+      minAppVersion: "1.8.0",
+      description: "Hand-drawn inline annotations for Obsidian Markdown.",
+    };
+    const plugin = new CrispAnnotationsPlugin(app, manifest);
+    plugin.app = app;
+    plugin.manifest = manifest;
+    await plugin.onload();
+    await (plugin as unknown as {
+      openAnnotationOutline(): Promise<void>;
+    }).openAnnotationOutline();
+    outlineLeaf.view.containerEl.querySelectorAll<HTMLButtonElement>(
+      ".crisp-ann-outline-scope__button",
+    )[1].click();
+
+    const changedFile = {
+      path: "Changed.md",
+      name: "Changed.md",
+      basename: "Changed",
+      extension: "md",
+    };
+    (app.vault.cachedRead as unknown as { mockResolvedValue?(value: string): void })
+      .mockResolvedValue?.('==Updated=={ann note="来自磁盘修改" color=green}');
+    Object.assign(app.vault, {
+      getFileByPath: (path: string) => path === changedFile.path ? changedFile : null,
+      cachedRead: async () => '==Updated=={ann note="来自磁盘修改" color=green}',
+    });
+    vaultListeners.get("modify")?.(changedFile as never);
+
+    await vi.waitFor(() => {
+      expect(outlineLeaf.view.containerEl.textContent).toContain("来自磁盘修改");
+    });
+    expect(outlineLeaf.view.containerEl.textContent).toContain("Changed.md");
+  });
+
+  it("does not surface a transient file-read failure from an incremental update", async () => {
+    const { app } = createWorkspace();
+    const manifest = {
+      id: "crisp-annotations",
+      name: "Crisp Annotations",
+      version: "1.5.0",
+      author: "letschips",
+      minAppVersion: "1.8.0",
+      description: "Hand-drawn inline annotations for Obsidian Markdown.",
+    };
+    const plugin = new CrispAnnotationsPlugin(app, manifest);
+    plugin.app = app;
+    plugin.manifest = manifest;
+    await plugin.onload();
+    await (plugin as unknown as {
+      ensureVaultIndex(): Promise<void>;
+    }).ensureVaultIndex();
+    Object.assign(app.vault, {
+      getFileByPath: () => ({
+        path: "Moving.md",
+        name: "Moving.md",
+        basename: "Moving",
+        extension: "md",
+      }),
+      cachedRead: async () => { throw new Error("File moved during read"); },
+    });
+
+    await expect((plugin as unknown as {
+      updateVaultIndexFile(file: never): Promise<void>;
+    }).updateVaultIndexFile({
+      path: "Moving.md",
+      name: "Moving.md",
+      basename: "Moving",
+      extension: "md",
+    } as never)).resolves.toBeUndefined();
   });
 
   it("removes every plugin-owned appearance marker on unload", () => {
