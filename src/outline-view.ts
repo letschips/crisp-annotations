@@ -1,5 +1,6 @@
 import {
   ItemView,
+  setIcon,
   type TFile,
   type WorkspaceLeaf,
 } from "obsidian";
@@ -17,6 +18,19 @@ import {
 } from "./vault-annotation-index";
 
 export const OUTLINE_VIEW_TYPE = "crisp-annotations-outline-view";
+
+export type OutlineAnnotationAction = "edit" | "toggle-mark" | "copy" | "remove";
+
+export interface OutlineAnnotationContext {
+  annotation: AnnotationMatch;
+  filePath: string | null;
+  sourceLeaf: WorkspaceLeaf | null;
+}
+
+export type OutlineAnnotationActionHandler = (
+  action: OutlineAnnotationAction,
+  context: OutlineAnnotationContext,
+) => void;
 
 export const COLOR_ICONS: Record<string, string> = {
   neutral: "⬤",
@@ -49,12 +63,14 @@ export class CrispAnnotationsOutlineView extends ItemView {
   private searchQuery = "";
   private colorFilter: VaultAnnotationColorFilter = "all";
   private vaultLoading = false;
+  private activeAnnotation: { filePath: string; from: number } | null = null;
   private readonly settingsProvider: () => CrispAnnotationsSettings;
 
   constructor(
     leaf: WorkspaceLeaf,
     settingsProvider: () => CrispAnnotationsSettings,
     private readonly onVaultScopeRequested?: () => void,
+    private readonly onAnnotationAction?: OutlineAnnotationActionHandler,
   ) {
     super(leaf);
     this.settingsProvider = settingsProvider;
@@ -100,6 +116,48 @@ export class CrispAnnotationsOutlineView extends ItemView {
     this.vaultLoading = loading;
     if (this.outlineScope === "vault") {
       this.render();
+    }
+  }
+
+  setActiveAnnotation(filePath: string, from: number): void {
+    if (
+      this.activeAnnotation?.filePath === filePath
+      && this.activeAnnotation.from === from
+    ) {
+      return;
+    }
+    this.activeAnnotation = { filePath, from };
+    this.applyActiveAnnotation();
+  }
+
+  clearActiveAnnotation(): void {
+    if (!this.activeAnnotation) {
+      return;
+    }
+    this.activeAnnotation = null;
+    this.applyActiveAnnotation();
+  }
+
+  private applyActiveAnnotation(): void {
+    let activeItem: HTMLElement | null = null;
+    for (const item of this.containerEl.querySelectorAll<HTMLElement>(
+      ".crisp-ann-outline-item",
+    )) {
+      const active = Boolean(
+        this.activeAnnotation
+        && item.dataset.crispAnnFile === this.activeAnnotation.filePath
+        && Number(item.dataset.crispAnnFrom) === this.activeAnnotation.from,
+      );
+      item.classList.toggle("is-active", active);
+      if (active) {
+        activeItem = item;
+        item.setAttribute("aria-current", "true");
+      } else {
+        item.removeAttribute("aria-current");
+      }
+    }
+    if (typeof activeItem?.scrollIntoView === "function") {
+      activeItem.scrollIntoView({ block: "nearest" });
     }
   }
 
@@ -266,55 +324,103 @@ export class CrispAnnotationsOutlineView extends ItemView {
     annotation: AnnotationMatch,
     vaultEntry?: VaultAnnotationEntry,
   ): void {
-      const item = list.createDiv({
-        cls: `crisp-ann-outline-item crisp-ann-outline-item--${annotation.spec.color}`,
-      });
+    const item = list.createDiv({
+      cls: `crisp-ann-outline-item crisp-ann-outline-item--${annotation.spec.color}`,
+    });
 
-      const colorDot = item.createSpan({
-        cls: "crisp-ann-outline-item__color",
-        attr: {
-          "aria-label": annotation.spec.color,
-          style: `color: ${COLOR_HEX[annotation.spec.color] ?? COLOR_HEX.neutral};`,
-        },
-      });
-      colorDot.textContent = COLOR_ICONS[annotation.spec.color] ?? COLOR_ICONS.neutral;
+    const colorDot = item.createSpan({
+      cls: "crisp-ann-outline-item__color",
+      attr: {
+        "aria-label": annotation.spec.color,
+        style: `color: ${COLOR_HEX[annotation.spec.color] ?? COLOR_HEX.neutral};`,
+      },
+    });
+    colorDot.textContent = COLOR_ICONS[annotation.spec.color] ?? COLOR_ICONS.neutral;
 
-      const body = item.createDiv({
-        cls: "crisp-ann-outline-item__body",
-      });
+    const body = item.createDiv({
+      cls: "crisp-ann-outline-item__body",
+    });
 
-      body.createSpan({
-        cls: "crisp-ann-outline-item__target",
-        text: annotation.target.replace(/\n/g, " "),
-      });
+    body.createSpan({
+      cls: "crisp-ann-outline-item__target",
+      text: annotation.target.replace(/\n/g, " "),
+    });
 
-      body.createSpan({
-        cls: "crisp-ann-outline-item__note",
-        text: annotation.spec.note,
-      });
+    body.createSpan({
+      cls: "crisp-ann-outline-item__note",
+      text: annotation.spec.note,
+    });
 
-      const meta = item.createDiv({
-        cls: "crisp-ann-outline-item__meta",
-      });
+    const meta = item.createDiv({
+      cls: "crisp-ann-outline-item__meta",
+    });
+    meta.createSpan({
+      cls: "crisp-ann-outline-item__place",
+      text: PLACE_LABELS[annotation.spec.place] ?? annotation.spec.place,
+    });
+    if (!annotation.spec.mark) {
       meta.createSpan({
-        cls: "crisp-ann-outline-item__place",
-        text: PLACE_LABELS[annotation.spec.place] ?? annotation.spec.place,
+        cls: "crisp-ann-outline-item__no-mark",
+        text: "无高亮",
       });
-      if (!annotation.spec.mark) {
-        meta.createSpan({
-          cls: "crisp-ann-outline-item__no-mark",
-          text: "无高亮",
-        });
-      }
+    }
 
-      item.setAttribute("data-crisp-ann-from", String(annotation.from));
-      item.setAttribute("data-crisp-ann-to", String(annotation.to));
-      if (vaultEntry) {
-        item.setAttribute("data-crisp-ann-file", vaultEntry.file.path);
-      }
-      item.addEventListener("click", () => {
-        void this.navigateToAnnotation(annotation, vaultEntry);
+    if (this.onAnnotationAction) {
+      const actions = item.createDiv({
+        cls: "crisp-ann-outline-item__actions",
       });
+      const filePath = vaultEntry?.file.path
+        ?? (this.sourceLeaf?.view as { file?: { path?: string } } | undefined)?.file?.path
+        ?? null;
+      const context: OutlineAnnotationContext = {
+        annotation,
+        filePath,
+        sourceLeaf: vaultEntry ? null : this.sourceLeaf,
+      };
+      for (const action of [
+        { value: "edit", label: "编辑标注", icon: "pencil" },
+        {
+          value: "toggle-mark",
+          label: annotation.spec.mark ? "关闭原文高亮" : "开启原文高亮",
+          icon: "highlighter",
+        },
+        { value: "copy", label: "复制标注内容", icon: "copy" },
+        { value: "remove", label: "删除标注", icon: "trash-2" },
+      ] as const) {
+        const button = actions.ownerDocument.createElement("button");
+        button.type = "button";
+        button.className = `crisp-ann-outline-item__action crisp-ann-outline-item__action--${action.value}`;
+        button.setAttribute("aria-label", action.label);
+        button.title = action.label;
+        setIcon(button, action.icon);
+        button.addEventListener("pointerdown", (event) => event.stopPropagation());
+        button.addEventListener("click", (event) => {
+          event.stopPropagation();
+          this.onAnnotationAction?.(action.value, context);
+        });
+        actions.appendChild(button);
+      }
+    }
+
+    item.setAttribute("data-crisp-ann-from", String(annotation.from));
+    item.setAttribute("data-crisp-ann-to", String(annotation.to));
+    const itemFilePath = vaultEntry?.file.path
+      ?? (this.sourceLeaf?.view as { file?: { path?: string } } | undefined)?.file?.path;
+    if (itemFilePath) {
+      item.setAttribute("data-crisp-ann-file", itemFilePath);
+    }
+    const active = Boolean(
+      itemFilePath
+      && this.activeAnnotation?.filePath === itemFilePath
+      && this.activeAnnotation.from === annotation.from,
+    );
+    item.classList.toggle("is-active", active);
+    if (active) {
+      item.setAttribute("aria-current", "true");
+    }
+    item.addEventListener("click", () => {
+      void this.navigateToAnnotation(annotation, vaultEntry);
+    });
   }
 
   private async navigateToAnnotation(

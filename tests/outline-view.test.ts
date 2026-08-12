@@ -322,6 +322,40 @@ describe("CrispAnnotationsOutlineView", () => {
     expect(container.textContent).toContain("没有匹配的标注");
   });
 
+  it("highlights the annotation nearest the reading viewport", () => {
+    const container = createObsidianEl();
+    const sourceLeaf = {
+      view: {
+        file: { path: "Current.md" },
+        editor: {
+          offsetToPos: (offset: number) => ({ line: 0, ch: offset }),
+          setCursor: () => {},
+          scrollIntoView: () => {},
+        },
+      },
+    };
+    const view = new CrispAnnotationsOutlineView(
+      makeDummyLeaf(),
+      makeDummySettings,
+    );
+    Object.defineProperty(view, "containerEl", { value: container });
+    const source = [
+      '==First=={ann note="One" color=blue}',
+      '==Second=={ann note="Two" color=green}',
+    ].join("\n");
+    const matches = findAnnotations(source);
+    view.refresh(source, sourceLeaf as unknown as WorkspaceLeaf);
+
+    view.setActiveAnnotation("Current.md", matches[1].from);
+
+    const items = container.querySelectorAll<HTMLElement>(
+      ".crisp-ann-outline-item",
+    );
+    expect(items[0].classList.contains("is-active")).toBe(false);
+    expect(items[1].classList.contains("is-active")).toBe(true);
+    expect(items[1].getAttribute("aria-current")).toBe("true");
+  });
+
   it("renders annotation items from parsed source", () => {
     const container = createObsidianEl();
     const view = new CrispAnnotationsOutlineView(
@@ -378,6 +412,63 @@ describe("CrispAnnotationsOutlineView", () => {
     expect(
       container.querySelector(".crisp-ann-outline-item__no-mark"),
     ).toBeNull();
+  });
+
+  it("offers four compact actions without triggering item navigation", () => {
+    const container = createObsidianEl();
+    const onAction = vi.fn();
+    let revealCount = 0;
+    const sourceLeaf = {
+      view: {
+        file: { path: "Current.md" },
+        editor: {
+          offsetToPos: (offset: number) => ({ line: 0, ch: offset }),
+          setCursor: () => {},
+          scrollIntoView: () => {},
+        },
+      },
+    };
+    const outlineLeaf = makeDummyLeaf();
+    outlineLeaf.app.workspace = {
+      activeLeaf: outlineLeaf,
+      getLeavesOfType: (type: string) => type === "markdown" ? [sourceLeaf] : [],
+      revealLeaf: () => { revealCount += 1; },
+      setActiveLeaf: () => {},
+    };
+    const view = new CrispAnnotationsOutlineView(
+      outlineLeaf,
+      makeDummySettings,
+      undefined,
+      onAction,
+    );
+    Object.defineProperty(view, "containerEl", { value: container });
+    view.refresh(
+      '==重要=={ann note="关键注释" color=blue}',
+      sourceLeaf as unknown as WorkspaceLeaf,
+    );
+
+    const buttons = container.querySelectorAll<HTMLButtonElement>(
+      ".crisp-ann-outline-item__action",
+    );
+    expect(Array.from(buttons).map((button) => button.getAttribute("aria-label")))
+      .toEqual(["编辑标注", "关闭原文高亮", "复制标注内容", "删除标注"]);
+
+    buttons[0].click();
+    buttons[1].click();
+    buttons[2].click();
+    buttons[3].click();
+
+    expect(onAction.mock.calls.map((call) => call[0])).toEqual([
+      "edit",
+      "toggle-mark",
+      "copy",
+      "remove",
+    ]);
+    expect(onAction.mock.calls[0][1]).toMatchObject({
+      filePath: "Current.md",
+      annotation: { target: "重要" },
+    });
+    expect(revealCount).toBe(0);
   });
 
   it("opens a vault result in a Markdown tab and jumps to its target", async () => {

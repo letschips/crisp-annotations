@@ -18,6 +18,7 @@ import {
   findAnnotations,
   serializeAnnotation,
   type AnnotationColor,
+  type AnnotationMatch,
   type AnnotationPlace,
   type AnnotationSpec,
 } from "./annotation-syntax";
@@ -36,6 +37,8 @@ import { MarginLayoutManager } from "./margin-layout";
 import {
   CrispAnnotationsOutlineView,
   OUTLINE_VIEW_TYPE,
+  type OutlineAnnotationAction,
+  type OutlineAnnotationContext,
 } from "./outline-view";
 import { verifyLicenseCode } from "./license";
 import { renderAnnotationsInElement } from "./reading-renderer";
@@ -70,6 +73,21 @@ import {
   VaultAnnotationIndex,
   type VaultMarkdownFile,
 } from "./vault-annotation-index";
+import {
+  findReferencedAnnotation,
+  transformReferencedAnnotation,
+} from "./annotation-reference";
+import {
+  findAdjacentAnnotation,
+  type AnnotationNavigationDirection,
+} from "./annotation-navigation";
+import { findClosestVisibleAnnotationIndex } from "./reading-position";
+
+interface ReadingSourceIndex {
+  annotations: AnnotationMatch[];
+  lineOffsets: number[];
+  source: string;
+}
 
 export default class CrispAnnotationsPlugin extends Plugin {
   settings: CrispAnnotationsSettings = { ...DEFAULT_SETTINGS };
@@ -80,6 +98,9 @@ export default class CrispAnnotationsPlugin extends Plugin {
   private vaultAnnotationIndex: VaultAnnotationIndex | null = null;
   private vaultIndexReady = false;
   private vaultIndexBuild: Promise<void> | null = null;
+  private readonly readingScrollDocuments = new Set<Document>();
+  private readonly readingSyncFrames = new Map<Document, number>();
+  private readonly readingSourceIndexes = new WeakMap<Editor, ReadingSourceIndex>();
 
   async onload(): Promise<void> {
     registerIcons();
@@ -92,18 +113,76 @@ export default class CrispAnnotationsPlugin extends Plugin {
       return this.app.vault.cachedRead(vaultFile);
     });
     this.applyAppearanceSettings();
+    this.registerReadingScrollDocument(document);
+    this.app.workspace.iterateAllLeaves((leaf) => {
+      this.registerReadingScrollDocument(leaf.view.containerEl.ownerDocument);
+    });
     this.registerEvent(this.app.workspace.on(
       "window-open",
-      (_workspaceWindow, window) => this.applyAppearanceSettingsToDocument(window.document),
+      (_workspaceWindow, window) => {
+        this.applyAppearanceSettingsToDocument(window.document);
+        this.registerReadingScrollDocument(window.document);
+      },
     ));
     this.registerEvent(this.app.workspace.on(
       "window-close",
-      (_workspaceWindow, window) => this.appearanceDocuments.delete(window.document),
+      (_workspaceWindow, window) => {
+        const closedDocument = window.document;
+        this.appearanceDocuments.delete(closedDocument);
+        this.readingScrollDocuments.delete(closedDocument);
+        const frame = this.readingSyncFrames.get(closedDocument);
+        if (frame !== undefined) {
+          closedDocument.defaultView?.cancelAnimationFrame(frame);
+          this.readingSyncFrames.delete(closedDocument);
+        }
+      },
     ));
 
-    this.registerMarkdownPostProcessor((element) => {
-      renderAnnotationsInElement(element);
+    this.registerMarkdownPostProcessor((element, context) => {
+      const sectionInfo = context.getSectionInfo(element);
+      renderAnnotationsInElement(element, (wrapper) => {
+        void this.editRenderedAnnotation(context.sourcePath, wrapper);
+      });
       this.marginLayout.schedule(element);
+      const leaf = this.findMarkdownLeaf(context.sourcePath, element);
+      if (leaf) {
+        const editor = (leaf.view as { editor?: Editor }).editor;
+        if (editor && sectionInfo) {
+          const sourceIndex = this.getReadingSourceIndex(editor);
+          const sectionStart = sourceIndex.lineOffsets[sectionInfo.lineStart]
+            ?? sourceIndex.source.length;
+          const sectionEnd = sourceIndex.lineOffsets[sectionInfo.lineEnd + 1]
+            ?? sourceIndex.source.length;
+          const sectionAnnotations = sourceIndex.annotations.filter((annotation) => (
+            annotation.from >= sectionStart && annotation.from < sectionEnd
+          ));
+          const wrappers = element.querySelectorAll<HTMLElement>(".crisp-ann");
+          const unusedAnnotations = [...sectionAnnotations];
+          for (const [index, wrapper] of Array.from(wrappers).entries()) {
+            let annotation = wrappers.length === sectionAnnotations.length
+              ? sectionAnnotations[index]
+              : undefined;
+            if (!annotation) {
+              const target = wrapper.querySelector<HTMLElement>(
+                ".crisp-ann__target",
+              )?.textContent ?? "";
+              const note = wrapper.querySelector<HTMLElement>(
+                ".crisp-ann__label",
+              )?.textContent ?? "";
+              const matchingIndex = unusedAnnotations.findIndex((candidate) => (
+                candidate.target === target && candidate.spec.note === note
+              ));
+              if (matchingIndex >= 0) {
+                annotation = unusedAnnotations.splice(matchingIndex, 1)[0];
+              }
+            }
+            if (annotation) {
+              wrapper.dataset.crispAnnFrom = String(annotation.from);
+            }
+          }
+        }
+        this.scheduleReadingSync(leaf);
+      }
     });
     this.registerEditorExtension(createAnnotationEditorExtension(
       () => this.settings.editorPreview,
@@ -115,6 +194,7 @@ export default class CrispAnnotationsPlugin extends Plugin {
         leaf,
         () => this.settings,
         () => { void this.ensureVaultIndex(); },
+        (action, context) => { void this.handleOutlineAction(action, context); },
       ),
     );
 
@@ -172,6 +252,18 @@ export default class CrispAnnotationsPlugin extends Plugin {
       name: "Export annotations summary to clipboard",
       editorCallback: (editor) => this.exportAnnotationsSummary(editor),
     });
+    this.addCommand({
+      id: "previous-annotation",
+      name: "Go to previous annotation",
+      hotkeys: [{ modifiers: ["Mod", "Alt"], key: "ArrowUp" }],
+      callback: () => this.navigateAdjacentAnnotation("previous"),
+    });
+    this.addCommand({
+      id: "next-annotation",
+      name: "Go to next annotation",
+      hotkeys: [{ modifiers: ["Mod", "Alt"], key: "ArrowDown" }],
+      callback: () => this.navigateAdjacentAnnotation("next"),
+    });
 
     this.registerEvent(this.app.workspace.on("editor-menu", (menu, editor) => {
       addAnnotationContextMenuItem(
@@ -226,6 +318,11 @@ export default class CrispAnnotationsPlugin extends Plugin {
   onunload(): void {
     this.cancelOutlineRefresh();
     this.marginLayout.destroy();
+    for (const [readingDocument, frame] of this.readingSyncFrames) {
+      readingDocument.defaultView?.cancelAnimationFrame(frame);
+    }
+    this.readingSyncFrames.clear();
+    this.readingScrollDocuments.clear();
     for (const appearanceDocument of this.appearanceDocuments) {
       appearanceDocument.body.removeAttribute("data-crisp-ann-theme");
       clearAnnotationFontSettings(appearanceDocument.body.style);
@@ -254,6 +351,152 @@ export default class CrispAnnotationsPlugin extends Plugin {
     appearanceDocument.body.setAttribute("data-crisp-ann-theme", this.settings.colorTheme);
     applyAnnotationFontSettings(appearanceDocument.body.style, this.settings);
     applyArrowAppearanceSettings(appearanceDocument.body.style, this.settings);
+  }
+
+  private registerReadingScrollDocument(readingDocument: Document): void {
+    if (this.readingScrollDocuments.has(readingDocument)) {
+      return;
+    }
+    this.readingScrollDocuments.add(readingDocument);
+    this.registerDomEvent(readingDocument, "scroll", (event) => {
+      const target = event.target && "nodeType" in event.target
+        ? event.target as Node
+        : null;
+      const leaf = this.app.workspace.getLeavesOfType("markdown").find((candidate) => {
+        const container = candidate.view.containerEl;
+        return container.ownerDocument === readingDocument
+          && (!target || target === readingDocument || container.contains(target));
+      }) ?? this.findMarkdownLeaf(undefined, undefined, readingDocument);
+      if (leaf) {
+        this.scheduleReadingSync(leaf);
+      }
+    }, true);
+  }
+
+  private getReadingSourceIndex(editor: Editor): ReadingSourceIndex {
+    const source = editor.getValue();
+    const cached = this.readingSourceIndexes.get(editor);
+    if (cached?.source === source) {
+      return cached;
+    }
+    const lineOffsets = [0];
+    for (let offset = source.indexOf("\n"); offset !== -1; offset = source.indexOf(
+      "\n",
+      offset + 1,
+    )) {
+      lineOffsets.push(offset + 1);
+    }
+    const sourceIndex = {
+      annotations: findAnnotations(source),
+      lineOffsets,
+      source,
+    };
+    this.readingSourceIndexes.set(editor, sourceIndex);
+    return sourceIndex;
+  }
+
+  private findMarkdownLeaf(
+    filePath?: string,
+    element?: HTMLElement,
+    ownerDocument?: Document,
+  ): WorkspaceLeaf | null {
+    const leaves = this.app.workspace.getLeavesOfType("markdown");
+    const containingLeaf = element
+      ? leaves.find((leaf) => leaf.view.containerEl.contains(element))
+      : null;
+    if (containingLeaf) {
+      return containingLeaf;
+    }
+    if (filePath) {
+      const fileLeaf = leaves.find((leaf) => (
+        (leaf.view as { file?: { path?: string } }).file?.path === filePath
+        && (!ownerDocument || leaf.view.containerEl.ownerDocument === ownerDocument)
+      ));
+      if (fileLeaf) {
+        return fileLeaf;
+      }
+    }
+    const activeLeaf = this.app.workspace.activeLeaf;
+    if (
+      activeLeaf
+      && leaves.includes(activeLeaf)
+      && (!ownerDocument || activeLeaf.view.containerEl.ownerDocument === ownerDocument)
+    ) {
+      return activeLeaf;
+    }
+    return leaves.find((leaf) => (
+      !ownerDocument || leaf.view.containerEl.ownerDocument === ownerDocument
+    )) ?? null;
+  }
+
+  private scheduleReadingSync(leaf: WorkspaceLeaf): void {
+    const readingDocument = leaf.view.containerEl.ownerDocument;
+    const readingWindow = readingDocument.defaultView;
+    if (!readingWindow || this.readingSyncFrames.has(readingDocument)) {
+      return;
+    }
+    const frame = readingWindow.requestAnimationFrame(() => {
+      this.readingSyncFrames.delete(readingDocument);
+      this.syncActiveAnnotationFromReading(leaf);
+    });
+    this.readingSyncFrames.set(readingDocument, frame);
+  }
+
+  private syncActiveAnnotationFromReading(leaf: WorkspaceLeaf): void {
+    const view = leaf.view as {
+      containerEl: HTMLElement;
+      editor?: Editor;
+      file?: { path?: string };
+    };
+    const preview = view.containerEl.querySelector<HTMLElement>(
+      ".markdown-preview-view",
+    );
+    const filePath = view.file?.path;
+    if (!preview || !view.editor || !filePath) {
+      this.clearActiveOutlineAnnotation();
+      return;
+    }
+    const wrappers = Array.from(preview.querySelectorAll<HTMLElement>(
+      ".crisp-ann",
+    ));
+    const viewportRect = preview.getBoundingClientRect();
+    const viewportTop = viewportRect.top;
+    const viewportBottom = viewportRect.bottom > viewportRect.top
+      ? viewportRect.bottom
+      : viewportTop + preview.clientHeight;
+    const index = findClosestVisibleAnnotationIndex(
+      wrappers.map((wrapper) => wrapper.getBoundingClientRect()),
+      viewportTop,
+      viewportBottom,
+    );
+    const annotations = this.getReadingSourceIndex(view.editor).annotations;
+    const activeWrapper = index === null ? null : wrappers[index];
+    const activeFrom = activeWrapper?.dataset.crispAnnFrom;
+    const annotation = activeFrom !== undefined
+      ? annotations.find((candidate) => candidate.from === Number(activeFrom)) ?? null
+      : index !== null && wrappers.length === annotations.length
+        ? annotations[index] ?? null
+        : null;
+    for (const outlineLeaf of this.app.workspace.getLeavesOfType(OUTLINE_VIEW_TYPE)) {
+      const outline = outlineLeaf.view;
+      if (!(outline instanceof CrispAnnotationsOutlineView)) {
+        continue;
+      }
+      if (annotation) {
+        outline.setActiveAnnotation(filePath, annotation.from);
+      } else {
+        outline.clearActiveAnnotation();
+      }
+    }
+  }
+
+  private clearActiveOutlineAnnotation(): void {
+    for (const leaf of this.app.workspace.getLeavesOfType(OUTLINE_VIEW_TYPE)) {
+      const view = leaf.view;
+      if (view instanceof CrispAnnotationsOutlineView) {
+        view.clearActiveAnnotation();
+      }
+    }
   }
 
   async ensureLicenseActivated(): Promise<boolean> {
@@ -438,6 +681,172 @@ export default class CrispAnnotationsPlugin extends Plugin {
     }
   }
 
+  private async editRenderedAnnotation(
+    filePath: string,
+    wrapper: HTMLElement,
+  ): Promise<void> {
+    const leaf = this.findMarkdownLeaf(filePath, wrapper);
+    const editor = (leaf?.view as { editor?: Editor } | undefined)?.editor;
+    if (!leaf || !editor) {
+      new Notice("无法打开这条标注所在的文档。");
+      return;
+    }
+    const annotations = this.getReadingSourceIndex(editor).annotations;
+    let reference: ReturnType<typeof findAnnotations>[number] | undefined;
+    const storedFrom = wrapper.dataset.crispAnnFrom;
+    if (storedFrom !== undefined) {
+      reference = annotations.find((annotation) => (
+        annotation.from === Number(storedFrom)
+      ));
+    }
+    const wrappers = Array.from(leaf.view.containerEl.querySelectorAll<HTMLElement>(
+      ".markdown-preview-view .crisp-ann",
+    ));
+    const wrapperIndex = wrappers.indexOf(wrapper);
+    if (!reference && wrapperIndex >= 0 && wrappers.length === annotations.length) {
+      reference = annotations[wrapperIndex];
+    } else if (!reference) {
+      const target = wrapper.querySelector<HTMLElement>(
+        ".crisp-ann__target",
+      )?.textContent ?? "";
+      const note = wrapper.querySelector<HTMLElement>(
+        ".crisp-ann__label",
+      )?.textContent ?? "";
+      const matches = annotations.filter((annotation) => (
+        annotation.target === target && annotation.spec.note === note
+      ));
+      reference = matches.length === 1 ? matches[0] : undefined;
+    }
+    if (!reference) {
+      new Notice("无法准确定位这条标注，请从标注中心重试。");
+      return;
+    }
+    await this.handleOutlineAction("edit", {
+      annotation: reference,
+      filePath,
+      sourceLeaf: leaf,
+    });
+  }
+
+  private async handleOutlineAction(
+    action: OutlineAnnotationAction,
+    context: OutlineAnnotationContext,
+  ): Promise<void> {
+    if (action === "copy") {
+      const text = `${context.annotation.target}\n${context.annotation.spec.note}`;
+      try {
+        await navigator.clipboard.writeText(text);
+        new Notice("已复制标注内容。");
+      } catch {
+        new Notice("复制标注内容失败。");
+      }
+      return;
+    }
+
+    const editorContext = await this.getOutlineEditorContext(
+      context,
+      action === "edit",
+    );
+    if (action === "edit") {
+      if (!editorContext) {
+        new Notice("无法打开这条标注所在的文档。");
+        return;
+      }
+      const annotation = findReferencedAnnotation(
+        editorContext.editor.getValue(),
+        context.annotation,
+      );
+      if (!annotation) {
+        new Notice("标注内容已经变化，请刷新标注中心后重试。");
+        return;
+      }
+      editorContext.editor.setCursor(
+        editorContext.editor.offsetToPos(annotation.targetFrom),
+      );
+      await this.openAnnotationModal(editorContext.editor);
+      return;
+    }
+
+    if (editorContext) {
+      const source = editorContext.editor.getValue();
+      const annotation = findReferencedAnnotation(source, context.annotation);
+      if (!annotation) {
+        new Notice("标注内容已经变化，请刷新标注中心后重试。");
+        return;
+      }
+      const replacement = action === "remove"
+        ? annotation.spec.mark
+          ? `==${annotation.target}==`
+          : annotation.target
+        : serializeAnnotation(annotation.target, {
+          ...annotation.spec,
+          mark: !annotation.spec.mark,
+        });
+      editorContext.editor.replaceRange(
+        replacement,
+        editorContext.editor.offsetToPos(annotation.from),
+        editorContext.editor.offsetToPos(annotation.to),
+      );
+      const updatedSource = editorContext.editor.getValue();
+      this.refreshOutlineViews(updatedSource, editorContext.leaf);
+      const file = (editorContext.leaf.view as { file?: TFile }).file;
+      if (file) {
+        void this.updateVaultIndexFile(file, updatedSource);
+      }
+      return;
+    }
+
+    const file = context.filePath
+      ? this.app.vault.getFileByPath(context.filePath)
+      : null;
+    if (!file) {
+      new Notice("无法找到这条标注所在的文档。");
+      return;
+    }
+    let changed = false;
+    await this.app.vault.process(file, (source) => {
+      const transformed = transformReferencedAnnotation(
+        source,
+        context.annotation,
+        action,
+      );
+      if (transformed === null) {
+        return source;
+      }
+      changed = true;
+      return transformed;
+    });
+    if (!changed) {
+      new Notice("标注内容已经变化，请刷新标注中心后重试。");
+    }
+  }
+
+  private async getOutlineEditorContext(
+    context: OutlineAnnotationContext,
+    openIfNeeded: boolean,
+  ): Promise<{ editor: Editor; leaf: WorkspaceLeaf } | null> {
+    const sourceEditor = (context.sourceLeaf?.view as { editor?: Editor } | undefined)?.editor;
+    if (context.sourceLeaf && sourceEditor) {
+      return { editor: sourceEditor, leaf: context.sourceLeaf };
+    }
+    if (!context.filePath) {
+      return null;
+    }
+    let leaf = this.app.workspace.getLeavesOfType("markdown").find((candidate) => (
+      (candidate.view as { file?: { path?: string } }).file?.path === context.filePath
+    ));
+    if (!leaf && openIfNeeded) {
+      const file = this.app.vault.getFileByPath(context.filePath);
+      if (!file) {
+        return null;
+      }
+      leaf = this.app.workspace.getLeaf("tab");
+      await leaf.openFile(file, { active: true });
+    }
+    const editor = (leaf?.view as { editor?: Editor } | undefined)?.editor;
+    return leaf && editor ? { editor, leaf } : null;
+  }
+
   private setVaultOutlineLoading(loading: boolean): void {
     for (const leaf of this.app.workspace.getLeavesOfType(OUTLINE_VIEW_TYPE)) {
       const view = leaf.view;
@@ -445,6 +854,56 @@ export default class CrispAnnotationsPlugin extends Plugin {
         view.setVaultLoading(loading);
       }
     }
+  }
+
+  private navigateAdjacentAnnotation(
+    direction: AnnotationNavigationDirection,
+  ): void {
+    const context = this.getMarkdownContext();
+    if (!context) {
+      new Notice("请先打开一篇 Markdown 文档。");
+      return;
+    }
+    const view = context.leaf.view as {
+      file?: TFile;
+      getMode?(): string;
+      currentMode?: {
+        applyScroll?(
+          line: number,
+          options?: { center?: boolean; highlight?: boolean },
+        ): boolean;
+      };
+      editor?: Editor;
+    };
+    const editor = view.editor;
+    if (!editor) {
+      return;
+    }
+    const cursorOffset = editor.posToOffset(editor.getCursor());
+    const annotation = findAdjacentAnnotation(
+      findAnnotations(context.source),
+      cursorOffset,
+      direction,
+    );
+    if (!annotation) {
+      new Notice("当前文档没有标注。");
+      return;
+    }
+    const from = editor.offsetToPos(annotation.targetFrom);
+    const to = editor.offsetToPos(annotation.targetTo);
+    editor.setCursor(from);
+    this.app.workspace.setActiveLeaf(context.leaf, { focus: true });
+    void this.app.workspace.revealLeaf(context.leaf);
+    if (
+      view.getMode?.() === "preview"
+      && view.currentMode?.applyScroll?.(from.line, {
+        center: true,
+        highlight: true,
+      })
+    ) {
+      return;
+    }
+    editor.scrollIntoView({ from, to }, true);
   }
 
   private getMarkdownContext(preferredLeaf?: WorkspaceLeaf | null): {

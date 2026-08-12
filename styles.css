@@ -80,6 +80,17 @@
   pointer-events: none;
 }
 
+.crisp-ann__label--editable {
+  cursor: text;
+  pointer-events: auto;
+}
+
+.crisp-ann__label--editable:focus-visible {
+  border-radius: 3px;
+  outline: 2px solid color-mix(in srgb, var(--crisp-ann-color) 65%, transparent);
+  outline-offset: 3px;
+}
+
 .crisp-ann::before {
   position: absolute;
   z-index: 3;
@@ -2218,6 +2229,7 @@ body.is-mobile .crisp-ann-block--space-top {
 }
 
 .crisp-ann-outline-item {
+  position: relative;
   display: flex;
   align-items: flex-start;
   gap: 10px;
@@ -2233,6 +2245,105 @@ body.is-mobile .crisp-ann-block--space-top {
 
 .crisp-ann-outline-item:hover {
   background: var(--background-modifier-hover);
+}
+
+.crisp-ann-outline-item.is-active {
+  background: color-mix(in srgb, var(--interactive-accent) 9%, transparent);
+  box-shadow: inset 2px 0 0 color-mix(
+    in srgb,
+    var(--interactive-accent) 68%,
+    transparent
+  );
+}
+
+.crisp-ann-outline-item.is-active .crisp-ann-outline-item__target {
+  color: var(--text-normal);
+}
+
+.crisp-ann-outline-item__actions {
+  position: absolute;
+  top: 6px;
+  right: 7px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  border: 1px solid color-mix(
+    in srgb,
+    var(--background-modifier-border) 72%,
+    transparent
+  );
+  border-radius: 8px;
+  background: color-mix(
+    in srgb,
+    var(--background-primary) 94%,
+    transparent
+  );
+  box-shadow: 0 3px 10px rgb(0 0 0 / 8%);
+  padding: 2px;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-2px);
+  transition: opacity 100ms ease-out, transform 100ms ease-out;
+}
+
+.crisp-ann-outline-item:hover .crisp-ann-outline-item__actions,
+.crisp-ann-outline-item:focus-within .crisp-ann-outline-item__actions {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.crisp-ann-outline-item__action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 25px;
+  height: 25px;
+  min-width: 25px;
+  min-height: 25px;
+  margin: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  box-shadow: none;
+  padding: 5px;
+  color: var(--text-muted);
+}
+
+.crisp-ann-outline-item__action:hover,
+.crisp-ann-outline-item__action:focus-visible {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+
+.crisp-ann-outline-item__action--remove:hover,
+.crisp-ann-outline-item__action--remove:focus-visible {
+  background: color-mix(in srgb, var(--text-error) 12%, transparent);
+  color: var(--text-error);
+}
+
+.crisp-ann-outline-item__action svg {
+  width: 14px;
+  height: 14px;
+}
+
+@media (hover: none) {
+  .crisp-ann-outline-item__actions {
+    position: static;
+    flex: 0 0 auto;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    padding: 0;
+    opacity: 1;
+    pointer-events: auto;
+    transform: none;
+  }
+
+  .crisp-ann-outline-item__meta {
+    display: none;
+  }
 }
 
 .crisp-ann-outline-item__color {

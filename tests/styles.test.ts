@@ -142,6 +142,25 @@ describe("plugin styles", () => {
     expect(styles).toContain(".crisp-ann-outline-file-group__path");
   });
 
+  it("keeps item actions compact and reveals them on hover or keyboard focus", () => {
+    expect(styles).toContain(".crisp-ann-outline-item__actions");
+    expect(styles).toContain(".crisp-ann-outline-item__action");
+    expect(styles).toContain(".crisp-ann-outline-item:hover .crisp-ann-outline-item__actions");
+    expect(styles).toContain(".crisp-ann-outline-item:focus-within .crisp-ann-outline-item__actions");
+    expect(styles).toContain(".crisp-ann-outline-item__action--remove");
+  });
+
+  it("gives the reading-synchronized outline item a calm active state", () => {
+    expect(styles).toContain(".crisp-ann-outline-item.is-active");
+    expect(styles).toContain("var(--interactive-accent)");
+  });
+
+  it("keeps reading-mode annotation labels directly editable", () => {
+    expect(styles).toContain(".crisp-ann__label--editable");
+    expect(styles).toContain("pointer-events: auto");
+    expect(styles).toContain("cursor: text");
+  });
+
   it("keeps choice motion explicit and fine-pointer gated", () => {
     expect(styles).not.toMatch(/transition:\s*all\b/);
     const finePointerBlock = styles.match(

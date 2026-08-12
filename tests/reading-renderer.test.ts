@@ -69,4 +69,27 @@ describe("renderAnnotationsInElement", () => {
     expect(targets.map((target) => target.getAttribute("aria-describedby")))
       .toEqual(labels.map((label) => label.id));
   });
+
+  it("opens an annotation for editing from its reading-mode label", () => {
+    document.body.innerHTML = [
+      '<p><mark>可直接编辑</mark>{ann note="双击我" place=right}</p>',
+    ].join("");
+    const edited: HTMLElement[] = [];
+
+    renderAnnotationsInElement(document.body, (wrapper) => edited.push(wrapper));
+
+    const wrapper = document.querySelector<HTMLElement>(".crisp-ann");
+    const label = document.querySelector<HTMLElement>(".crisp-ann__label");
+    expect(label?.classList.contains("crisp-ann__label--editable")).toBe(true);
+    expect(label?.getAttribute("tabindex")).toBe("0");
+
+    label?.dispatchEvent(new MouseEvent("dblclick", { bubbles: true }));
+    expect(edited).toEqual([wrapper]);
+
+    label?.dispatchEvent(new KeyboardEvent("keydown", {
+      bubbles: true,
+      key: "Enter",
+    }));
+    expect(edited).toEqual([wrapper, wrapper]);
+  });
 });

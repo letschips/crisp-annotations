@@ -33,6 +33,12 @@ export class Component {
   onunload(): void {}
   register(_cb: () => unknown): void {}
   registerEvent(_event: unknown): void {}
+  registerDomEvent(
+    _element: Document | Window | HTMLElement,
+    _type: string,
+    _callback: EventListener,
+    _options?: boolean | AddEventListenerOptions,
+  ): void {}
   addChild(_child: Component): void {}
 }
 
@@ -69,6 +75,18 @@ export class ItemView extends Component {
 export class Plugin extends Component {
   app!: App;
   manifest!: PluginManifest;
+  commands: Command[] = [];
+  markdownPostProcessors: Array<(
+    element: HTMLElement,
+    context: {
+      sourcePath: string;
+      getSectionInfo(element: HTMLElement): {
+        text: string;
+        lineStart: number;
+        lineEnd: number;
+      } | null;
+    },
+  ) => void> = [];
 
   loadData(): Promise<unknown> {
     return Promise.resolve({});
@@ -78,8 +96,9 @@ export class Plugin extends Component {
     return Promise.resolve();
   }
 
-  addCommand(_command: Command): Command {
-    return { id: "", name: "" };
+  addCommand(command: Command): Command {
+    this.commands.push(command);
+    return command;
   }
 
   addSettingTab(_tab: PluginSettingTab): void {}
@@ -90,8 +109,20 @@ export class Plugin extends Component {
   ): void {}
 
   registerMarkdownPostProcessor(
-    _processor: (element: HTMLElement) => void,
-  ): void {}
+    processor: (
+      element: HTMLElement,
+      context: {
+        sourcePath: string;
+        getSectionInfo(element: HTMLElement): {
+          text: string;
+          lineStart: number;
+          lineEnd: number;
+        } | null;
+      },
+    ) => void,
+  ): void {
+    this.markdownPostProcessors.push(processor);
+  }
 
   registerEditorExtension(_extension: unknown): void {}
 
@@ -403,6 +434,10 @@ export class Notice {
   constructor(_message: string, _timeout?: number) {}
 }
 
+export function setIcon(parent: HTMLElement, iconId: string): void {
+  parent.setAttribute("data-icon", iconId);
+}
+
 export class Scope {
   keys: Array<{
     modifiers: string | string[] | null;
@@ -463,6 +498,7 @@ export interface PluginManifest {
 export interface Command {
   id: string;
   name: string;
+  hotkeys?: Array<{ modifiers: string[]; key: string }>;
   editorCallback?: (editor: Editor) => void;
   callback?: () => void;
 }

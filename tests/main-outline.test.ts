@@ -6,6 +6,8 @@ import {
   OUTLINE_VIEW_TYPE,
 } from "../src/outline-view";
 import { DEFAULT_SETTINGS } from "../src/settings";
+import { findAnnotations } from "../src/annotation-syntax";
+import { AnnotationModal } from "../src/annotation-modal";
 
 vi.mock("../src/icons", () => ({ registerIcons: vi.fn() }));
 
@@ -21,6 +23,18 @@ interface MarkdownViewShape {
   };
   editor: {
     getValue(): string;
+    getCursor(): { line: number; ch: number };
+    getCursor(mode: "from" | "to"): { line: number; ch: number };
+    getSelection(): string;
+    posToOffset(pos: { line: number; ch: number }): number;
+    offsetToPos(offset: number): { line: number; ch: number };
+    replaceRange(
+      replacement: string,
+      from: { line: number; ch: number },
+      to?: { line: number; ch: number },
+    ): void;
+    setCursor(pos: { line: number; ch: number }): void;
+    scrollIntoView(): void;
   };
   getViewType(): string;
 }
@@ -32,9 +46,12 @@ interface TestWorkspace {
   outlineLeaves: WorkspaceLeaf[];
   listeners: Map<string, (...args: never[]) => void>;
   vaultListeners: Map<string, (...args: never[]) => void>;
+  getSource(): string;
 }
 
 function createWorkspace(): TestWorkspace {
+  let markdownSource = SOURCE;
+  let cursor = { line: 0, ch: 0 };
   const sourceFile = {
     path: "Current.md",
     name: "Current.md",
@@ -44,7 +61,16 @@ function createWorkspace(): TestWorkspace {
   const markdownView: MarkdownViewShape = {
     containerEl: document.createElement("div"),
     editor: {
-      getValue: () => SOURCE,
+      getValue: () => markdownSource,
+      getCursor: () => cursor,
+      getSelection: () => "",
+      posToOffset: (pos) => pos.ch,
+      offsetToPos: (offset) => ({ line: 0, ch: offset }),
+      replaceRange: (replacement, from, to = from) => {
+        markdownSource = `${markdownSource.slice(0, from.ch)}${replacement}${markdownSource.slice(to.ch)}`;
+      },
+      setCursor: (pos) => { cursor = pos; },
+      scrollIntoView: () => {},
     },
     getViewType: () => "markdown",
     file: sourceFile,
@@ -88,6 +114,9 @@ function createWorkspace(): TestWorkspace {
     revealLeaf: (leaf: WorkspaceLeaf) => {
       workspace.activeLeaf = leaf;
     },
+    setActiveLeaf: (leaf: WorkspaceLeaf) => {
+      workspace.activeLeaf = leaf;
+    },
     on: (event: string, callback: (...args: never[]) => void) => {
       listeners.set(event, callback);
       return {};
@@ -128,6 +157,7 @@ function createWorkspace(): TestWorkspace {
     outlineLeaves,
     listeners,
     vaultListeners,
+    getSource: () => markdownSource,
   };
 }
 
@@ -292,6 +322,270 @@ describe("annotation outline lifecycle", () => {
       basename: "Moving",
       extension: "md",
     } as never)).resolves.toBeUndefined();
+  });
+
+  it("executes panel edit, highlight, copy, and remove actions against a reading leaf", async () => {
+    const { app, markdownLeaf, getSource } = createWorkspace();
+    const manifest = {
+      id: "crisp-annotations",
+      name: "Crisp Annotations",
+      version: "1.5.1",
+      author: "letschips",
+      minAppVersion: "1.8.0",
+      description: "Hand-drawn inline annotations for Obsidian Markdown.",
+    };
+    const plugin = new CrispAnnotationsPlugin(app, manifest);
+    plugin.app = app;
+    plugin.manifest = manifest;
+    vi.spyOn(plugin, "ensureLicenseActivated").mockResolvedValue(true);
+    const openModal = vi.spyOn(AnnotationModal.prototype, "open");
+    const writeText = vi.fn(async () => {});
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText },
+    });
+    const reference = findAnnotations(SOURCE)[0];
+    const context = {
+      annotation: reference,
+      filePath: "Current.md",
+      sourceLeaf: markdownLeaf,
+    };
+
+    await (plugin as unknown as {
+      handleOutlineAction(action: string, context: unknown): Promise<void>;
+    }).handleOutlineAction("edit", context);
+    expect(openModal).toHaveBeenCalledOnce();
+
+    await (plugin as unknown as {
+      handleOutlineAction(action: string, context: unknown): Promise<void>;
+    }).handleOutlineAction("copy", context);
+    expect(writeText).toHaveBeenCalledWith("重点\n来自当前文档");
+
+    await (plugin as unknown as {
+      handleOutlineAction(action: string, context: unknown): Promise<void>;
+    }).handleOutlineAction("toggle-mark", context);
+    expect(getSource()).toContain("mark=off");
+
+    const toggledReference = findAnnotations(getSource())[0];
+    await (plugin as unknown as {
+      handleOutlineAction(action: string, context: unknown): Promise<void>;
+    }).handleOutlineAction("remove", {
+      ...context,
+      annotation: toggledReference,
+    });
+    expect(getSource()).toBe("正文 重点");
+  });
+
+  it("updates a closed vault file atomically from the panel", async () => {
+    const { app } = createWorkspace();
+    const closedFile = {
+      path: "Closed.md",
+      name: "Closed.md",
+      basename: "Closed",
+      extension: "md",
+    };
+    let closedSource = '==Closed target=={ann note="Closed note" color=green}';
+    Object.assign(app.vault, {
+      getFileByPath: (path: string) => path === closedFile.path ? closedFile : null,
+      process: async (_file: unknown, transform: (source: string) => string) => {
+        closedSource = transform(closedSource);
+      },
+    });
+    const manifest = {
+      id: "crisp-annotations",
+      name: "Crisp Annotations",
+      version: "1.5.1",
+      author: "letschips",
+      minAppVersion: "1.8.0",
+      description: "Hand-drawn inline annotations for Obsidian Markdown.",
+    };
+    const plugin = new CrispAnnotationsPlugin(app, manifest);
+    plugin.app = app;
+    plugin.manifest = manifest;
+
+    await (plugin as unknown as {
+      handleOutlineAction(action: string, context: unknown): Promise<void>;
+    }).handleOutlineAction("toggle-mark", {
+      annotation: findAnnotations(closedSource)[0],
+      filePath: closedFile.path,
+      sourceLeaf: null,
+    });
+
+    expect(closedSource).toContain("mark=off");
+  });
+
+  it("registers previous and next shortcuts that wrap through the active document", async () => {
+    const { app, markdownLeaf } = createWorkspace();
+    const source = [
+      '==First=={ann note="One"}',
+      '==Second=={ann note="Two"}',
+    ].join("\n");
+    const annotations = findAnnotations(source);
+    const editor = (markdownLeaf.view as unknown as MarkdownViewShape).editor;
+    Object.assign(editor, { getValue: () => source });
+    editor.setCursor(editor.offsetToPos(annotations[0].targetFrom));
+    const manifest = {
+      id: "crisp-annotations",
+      name: "Crisp Annotations",
+      version: "1.5.1",
+      author: "letschips",
+      minAppVersion: "1.8.0",
+      description: "Hand-drawn inline annotations for Obsidian Markdown.",
+    };
+    const plugin = new CrispAnnotationsPlugin(app, manifest);
+    plugin.app = app;
+    plugin.manifest = manifest;
+    await plugin.onload();
+    const commands = (plugin as unknown as {
+      commands: Array<{
+        id: string;
+        hotkeys?: Array<{ modifiers: string[]; key: string }>;
+        callback?: () => void;
+      }>;
+    }).commands;
+    const previous = commands.find((command) => command.id === "previous-annotation");
+    const next = commands.find((command) => command.id === "next-annotation");
+
+    expect(previous?.hotkeys).toEqual([{
+      modifiers: ["Mod", "Alt"],
+      key: "ArrowUp",
+    }]);
+    expect(next?.hotkeys).toEqual([{
+      modifiers: ["Mod", "Alt"],
+      key: "ArrowDown",
+    }]);
+
+    next?.callback?.();
+    expect(editor.getCursor()).toEqual(editor.offsetToPos(annotations[1].targetFrom));
+    next?.callback?.();
+    expect(editor.getCursor()).toEqual(editor.offsetToPos(annotations[0].targetFrom));
+    previous?.callback?.();
+    expect(editor.getCursor()).toEqual(editor.offsetToPos(annotations[1].targetFrom));
+  });
+
+  it("edits the matching annotation when its reading-mode label is activated", async () => {
+    const { app, markdownLeaf } = createWorkspace();
+    const source = [
+      '==First=={ann note="One"}',
+      '==Second=={ann note="Two"}',
+    ].join("\n");
+    const markdownView = markdownLeaf.view as unknown as MarkdownViewShape;
+    Object.assign(markdownView.editor, { getValue: () => source });
+    const preview = document.createElement("div");
+    preview.className = "markdown-preview-view";
+    markdownView.containerEl.append(preview);
+    preview.innerHTML = [
+      '<p><mark>First</mark>{ann note="One"}</p>',
+      '<p><mark>Second</mark>{ann note="Two"}</p>',
+    ].join("");
+    const manifest = {
+      id: "crisp-annotations",
+      name: "Crisp Annotations",
+      version: "1.5.1",
+      author: "letschips",
+      minAppVersion: "1.8.0",
+      description: "Hand-drawn inline annotations for Obsidian Markdown.",
+    };
+    const plugin = new CrispAnnotationsPlugin(app, manifest);
+    plugin.app = app;
+    plugin.manifest = manifest;
+    vi.spyOn(plugin, "ensureLicenseActivated").mockResolvedValue(true);
+    const openModal = vi.spyOn(AnnotationModal.prototype, "open");
+    await plugin.onload();
+
+    const processor = (plugin as unknown as {
+      markdownPostProcessors: Array<(
+        element: HTMLElement,
+        context: {
+          sourcePath: string;
+          getSectionInfo(element: HTMLElement): {
+            text: string;
+            lineStart: number;
+            lineEnd: number;
+          };
+        },
+      ) => void>;
+    }).markdownPostProcessors[0];
+    processor(preview, {
+      sourcePath: "Current.md",
+      getSectionInfo: () => ({ text: source, lineStart: 0, lineEnd: 1 }),
+    });
+    const labels = preview.querySelectorAll<HTMLElement>(".crisp-ann__label");
+    const wrappers = preview.querySelectorAll<HTMLElement>(".crisp-ann");
+    expect(wrappers[1].dataset.crispAnnFrom).toBe(
+      String(findAnnotations(source)[1].from),
+    );
+    labels[1].dispatchEvent(new MouseEvent("dblclick", { bubbles: true }));
+
+    await vi.waitFor(() => expect(openModal).toHaveBeenCalledOnce());
+    expect(markdownView.editor.getCursor()).toEqual(
+      markdownView.editor.offsetToPos(findAnnotations(source)[1].targetFrom),
+    );
+  });
+
+  it("marks the reading annotation nearest the viewport as active in the panel", async () => {
+    const { app, markdownLeaf, outlineLeaf } = createWorkspace();
+    const source = [
+      '==First=={ann note="One"}',
+      '==Second=={ann note="Two"}',
+    ].join("\n");
+    const markdownView = markdownLeaf.view as unknown as MarkdownViewShape;
+    Object.assign(markdownView.editor, { getValue: () => source });
+    const preview = document.createElement("div");
+    preview.className = "markdown-preview-view";
+    markdownView.containerEl.append(preview);
+    Object.defineProperty(preview, "clientHeight", { value: 600 });
+    preview.getBoundingClientRect = () => ({
+      top: 100,
+      bottom: 700,
+      left: 0,
+      right: 800,
+      width: 800,
+      height: 600,
+      x: 0,
+      y: 100,
+      toJSON: () => ({}),
+    });
+    const wrapper = document.createElement("span");
+    wrapper.className = "crisp-ann";
+    wrapper.dataset.crispAnnFrom = String(findAnnotations(source)[1].from);
+    preview.append(wrapper);
+    wrapper.getBoundingClientRect = () => ({
+      top: 385,
+      bottom: 415,
+      left: 0,
+      right: 120,
+      width: 120,
+      height: 30,
+      x: 0,
+      y: 385,
+      toJSON: () => ({}),
+    });
+    await outlineLeaf.setViewState({ type: OUTLINE_VIEW_TYPE });
+    const outline = outlineLeaf.view as CrispAnnotationsOutlineView;
+    outline.refresh(source, markdownLeaf);
+    const manifest = {
+      id: "crisp-annotations",
+      name: "Crisp Annotations",
+      version: "1.5.1",
+      author: "letschips",
+      minAppVersion: "1.8.0",
+      description: "Hand-drawn inline annotations for Obsidian Markdown.",
+    };
+    const plugin = new CrispAnnotationsPlugin(app, manifest);
+    plugin.app = app;
+    plugin.manifest = manifest;
+
+    (plugin as unknown as {
+      syncActiveAnnotationFromReading(leaf: WorkspaceLeaf): void;
+    }).syncActiveAnnotationFromReading(markdownLeaf);
+
+    const items = outline.containerEl.querySelectorAll<HTMLElement>(
+      ".crisp-ann-outline-item",
+    );
+    expect(items[0].classList.contains("is-active")).toBe(false);
+    expect(items[1].classList.contains("is-active")).toBe(true);
+    expect(items[1].getAttribute("aria-current")).toBe("true");
   });
 
   it("removes every plugin-owned appearance marker on unload", () => {
