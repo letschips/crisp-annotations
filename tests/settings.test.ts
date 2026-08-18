@@ -10,6 +10,16 @@ describe("normalizeSettings", () => {
     expect(normalizeSettings({})).toMatchObject({
       annotationFontMode: "handwritten",
       customFontFamily: "",
+      recallMode: false,
+    });
+  });
+
+  it("keeps only boolean active-recall preferences", () => {
+    expect(normalizeSettings({ recallMode: true })).toMatchObject({
+      recallMode: true,
+    });
+    expect(normalizeSettings({ recallMode: "yes" })).toMatchObject({
+      recallMode: false,
     });
   });
 

@@ -81,14 +81,48 @@
 }
 
 .crisp-ann__label--editable {
-  cursor: text;
+  cursor: pointer;
   pointer-events: auto;
+  touch-action: manipulation;
+  transition: color 0.18s ease, text-shadow 0.18s ease, background-color 0.18s ease, box-shadow 0.18s ease;
 }
 
 .crisp-ann__label--editable:focus-visible {
   border-radius: 3px;
   outline: 2px solid color-mix(in srgb, var(--crisp-ann-color) 65%, transparent);
   outline-offset: 3px;
+}
+
+/* Active recall keeps the label's box metrics stable, so flipping never jitters. */
+.crisp-ann__label.is-masked,
+body[data-crisp-ann-recall="true"] .crisp-ann__label:not(.is-revealed) {
+  border-radius: 5px;
+  background-color: color-mix(in srgb, var(--crisp-ann-color) 12%, transparent) !important;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--crisp-ann-color) 35%, transparent) !important;
+  color: transparent !important;
+  text-shadow:
+    0 0 6px color-mix(in srgb, var(--crisp-ann-color) 75%, var(--text-muted)),
+    0 0 2px color-mix(in srgb, var(--crisp-ann-color) 45%, transparent) !important;
+  user-select: none !important;
+  cursor: pointer;
+}
+
+.crisp-ann__label.is-masked:hover,
+body[data-crisp-ann-recall="true"] .crisp-ann__label:not(.is-revealed):hover {
+  background-color: color-mix(in srgb, var(--crisp-ann-color) 20%, transparent) !important;
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--crisp-ann-color) 60%, transparent),
+    0 2px 8px color-mix(in srgb, var(--crisp-ann-color) 15%, transparent) !important;
+  text-shadow: 0 0 3px color-mix(in srgb, var(--crisp-ann-color) 90%, var(--text-normal)) !important;
+}
+
+.crisp-ann__label.is-revealed,
+body[data-crisp-ann-recall="true"] .crisp-ann__label.is-revealed {
+  background-color: transparent !important;
+  box-shadow: none !important;
+  color: var(--crisp-ann-color) !important;
+  text-shadow: none !important;
+  user-select: auto !important;
 }
 
 .crisp-ann::before {
@@ -1874,6 +1908,16 @@ body.is-mobile .crisp-ann-block--space-top {
     opacity: 1;
   }
 
+  body[data-crisp-ann-recall="true"] .crisp-ann__label,
+  .crisp-ann__label.is-masked,
+  .crisp-ann__label.is-revealed {
+    background-color: transparent !important;
+    box-shadow: none !important;
+    color: var(--crisp-ann-color) !important;
+    text-shadow: none !important;
+    user-select: auto !important;
+  }
+
   /* Inline margin notes as compact annotations beside text.
      Remove absolute positioning so they flow in document order. */
   .crisp-ann-margin-item {
@@ -2626,6 +2670,7 @@ body.is-mobile .crisp-ann-block--space-top {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .crisp-ann__label--editable,
   .crisp-ann-setting-card,
   .crisp-ann-setting-card__header,
   .crisp-ann-setting-card__chevron,

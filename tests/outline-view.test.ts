@@ -66,6 +66,7 @@ function createObsidianEl(): HTMLElement {
 
 function makeDummySettings(): CrispAnnotationsSettings {
   return {
+    recallMode: false,
     defaultPlace: "bottom",
     defaultColor: "amber",
     defaultMark: true,

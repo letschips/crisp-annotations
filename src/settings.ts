@@ -73,6 +73,7 @@ export interface CrispAnnotationsSettings {
   lastUsedPlace: AnnotationPlace;
   lastUsedColor: AnnotationColor;
   lastUsedMark: boolean;
+  recallMode: boolean;
   licenseCode: string;
 }
 
@@ -94,6 +95,7 @@ export const DEFAULT_SETTINGS: CrispAnnotationsSettings = {
   lastUsedPlace: "bottom",
   lastUsedColor: "amber",
   lastUsedMark: true,
+  recallMode: false,
   licenseCode: "",
 };
 
@@ -173,6 +175,9 @@ export function normalizeSettings(value: unknown): CrispAnnotationsSettings {
     lastUsedMark: typeof candidate.lastUsedMark === "boolean"
       ? candidate.lastUsedMark
       : DEFAULT_SETTINGS.lastUsedMark,
+    recallMode: typeof candidate.recallMode === "boolean"
+      ? candidate.recallMode
+      : DEFAULT_SETTINGS.recallMode,
     licenseCode: typeof candidate.licenseCode === "string"
       ? candidate.licenseCode.trim()
       : "",

@@ -41,7 +41,10 @@ import {
   type OutlineAnnotationContext,
 } from "./outline-view";
 import { verifyLicenseCode } from "./license";
-import { renderAnnotationsInElement } from "./reading-renderer";
+import {
+  renderAnnotationsInElement,
+  resetAnnotationMaskState,
+} from "./reading-renderer";
 import { renderAboutCard } from "./settings-about";
 import {
   ANNOTATION_FONT_MODES,
@@ -253,6 +256,13 @@ export default class CrispAnnotationsPlugin extends Plugin {
       editorCallback: (editor) => this.exportAnnotationsSummary(editor),
     });
     this.addCommand({
+      id: "toggle-active-recall-mode",
+      name: "Toggle active recall / mask mode (切换批注遮罩自测模式)",
+      callback: () => {
+        void this.setRecallMode(!this.settings.recallMode, true);
+      },
+    });
+    this.addCommand({
       id: "previous-annotation",
       name: "Go to previous annotation",
       hotkeys: [{ modifiers: ["Mod", "Alt"], key: "ArrowUp" }],
@@ -325,6 +335,7 @@ export default class CrispAnnotationsPlugin extends Plugin {
     this.readingScrollDocuments.clear();
     for (const appearanceDocument of this.appearanceDocuments) {
       appearanceDocument.body.removeAttribute("data-crisp-ann-theme");
+      appearanceDocument.body.removeAttribute("data-crisp-ann-recall");
       clearAnnotationFontSettings(appearanceDocument.body.style);
       clearArrowAppearanceSettings(appearanceDocument.body.style);
     }
@@ -349,8 +360,32 @@ export default class CrispAnnotationsPlugin extends Plugin {
   private applyAppearanceSettingsToDocument(appearanceDocument: Document): void {
     this.appearanceDocuments.add(appearanceDocument);
     appearanceDocument.body.setAttribute("data-crisp-ann-theme", this.settings.colorTheme);
+    appearanceDocument.body.setAttribute(
+      "data-crisp-ann-recall",
+      String(this.settings.recallMode),
+    );
     applyAnnotationFontSettings(appearanceDocument.body.style, this.settings);
     applyArrowAppearanceSettings(appearanceDocument.body.style, this.settings);
+  }
+
+  async setRecallMode(enabled: boolean, announce = false): Promise<void> {
+    this.settings.recallMode = enabled;
+    this.applyAppearanceSettings();
+    for (const appearanceDocument of this.appearanceDocuments) {
+      appearanceDocument.body.setAttribute(
+        "data-crisp-ann-recall",
+        String(enabled),
+      );
+      resetAnnotationMaskState(appearanceDocument, enabled);
+    }
+    await this.saveData(this.settings);
+    this.marginLayout.refreshAll();
+    this.app.workspace.updateOptions();
+    if (announce) {
+      new Notice(enabled
+        ? "💡 Crisp Annotations: 已开启自测遮罩模式（点击批注揭晓）"
+        : "👁️ Crisp Annotations: 已退出自测遮罩模式（显示所有批注）");
+    }
   }
 
   private registerReadingScrollDocument(readingDocument: Document): void {
@@ -1252,6 +1287,15 @@ class CrispAnnotationsSettingTab extends PluginSettingTab {
       "控制阅读模式下所有标注笔记的渲染位置。",
       false,
     );
+
+    new Setting(layoutBody)
+      .setName("自测遮罩模式 (Active Recall)")
+      .setDesc("开启后批注文字默认遮罩；点击或按 Enter 揭晓，双击或按 Shift+Enter 编辑。")
+      .addToggle((toggle) => toggle
+        .setValue(this.plugin.settings.recallMode)
+        .onChange(async (value) => {
+          await this.plugin.setRecallMode(value, false);
+        }));
 
     new Setting(layoutBody)
       .setName("标注布局")

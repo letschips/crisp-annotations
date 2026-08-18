@@ -4,6 +4,7 @@ import { renderAnnotationsInElement } from "../src/reading-renderer";
 describe("renderAnnotationsInElement", () => {
   beforeEach(() => {
     document.body.replaceChildren();
+    document.body.removeAttribute("data-crisp-ann-recall");
   });
 
   it("turns an annotated mark into an accessible hand-note wrapper", () => {
@@ -70,7 +71,7 @@ describe("renderAnnotationsInElement", () => {
       .toEqual(labels.map((label) => label.id));
   });
 
-  it("opens an annotation for editing from its reading-mode label", () => {
+  it("opens an annotation for editing with a native double click or Shift+Enter", () => {
     document.body.innerHTML = [
       '<p><mark>可直接编辑</mark>{ann note="双击我" place=right}</p>',
     ].join("");
@@ -89,7 +90,72 @@ describe("renderAnnotationsInElement", () => {
     label?.dispatchEvent(new KeyboardEvent("keydown", {
       bubbles: true,
       key: "Enter",
+      shiftKey: true,
     }));
     expect(edited).toEqual([wrapper, wrapper]);
+  });
+
+  it("masks and reveals a label immediately on single click", () => {
+    document.body.innerHTML = '<p><mark>目标</mark>{ann note="点击自测"}</p>';
+    renderAnnotationsInElement(document.body, () => {});
+    const label = document.querySelector<HTMLElement>(".crisp-ann__label");
+
+    label?.dispatchEvent(new MouseEvent("click", { bubbles: true, detail: 1 }));
+    expect(label?.classList.contains("is-masked")).toBe(true);
+    expect(label?.getAttribute("aria-pressed")).toBe("false");
+
+    label?.dispatchEvent(new MouseEvent("click", { bubbles: true, detail: 1 }));
+    expect(label?.classList.contains("is-masked")).toBe(false);
+    expect(label?.getAttribute("aria-pressed")).toBe("true");
+  });
+
+  it("lets a native double click edit without leaving the label masked", () => {
+    document.body.innerHTML = '<p><mark>目标</mark>{ann note="双击编辑"}</p>';
+    const edited: HTMLElement[] = [];
+    renderAnnotationsInElement(document.body, (wrapper) => edited.push(wrapper));
+    const wrapper = document.querySelector<HTMLElement>(".crisp-ann");
+    const label = document.querySelector<HTMLElement>(".crisp-ann__label");
+
+    label?.dispatchEvent(new MouseEvent("click", { bubbles: true, detail: 1 }));
+    expect(label?.classList.contains("is-masked")).toBe(true);
+    label?.dispatchEvent(new MouseEvent("click", { bubbles: true, detail: 2 }));
+    label?.dispatchEvent(new MouseEvent("dblclick", { bubbles: true, detail: 2 }));
+
+    expect(edited).toEqual([wrapper]);
+    expect(label?.classList.contains("is-masked")).toBe(false);
+    expect(label?.classList.contains("is-revealed")).toBe(false);
+  });
+
+  it("reads recall mode from the label owner document", () => {
+    const popoutDocument = document.implementation.createHTMLDocument("popout");
+    popoutDocument.body.setAttribute("data-crisp-ann-recall", "true");
+    popoutDocument.body.innerHTML = '<p><mark>目标</mark>{ann note="弹窗答案"}</p>';
+    renderAnnotationsInElement(popoutDocument.body, () => {});
+    const label = popoutDocument.querySelector<HTMLElement>(".crisp-ann__label");
+
+    label?.dispatchEvent(new MouseEvent("click", { bubbles: true, detail: 1 }));
+
+    expect(label?.classList.contains("is-revealed")).toBe(true);
+    expect(label?.classList.contains("is-masked")).toBe(false);
+    expect(label?.getAttribute("aria-pressed")).toBe("true");
+  });
+
+  it("uses Enter for recall and Shift+Enter as the keyboard edit action", () => {
+    document.body.innerHTML = '<p><mark>目标</mark>{ann note="键盘操作"}</p>';
+    const edited: HTMLElement[] = [];
+    renderAnnotationsInElement(document.body, (wrapper) => edited.push(wrapper));
+    const wrapper = document.querySelector<HTMLElement>(".crisp-ann");
+    const label = document.querySelector<HTMLElement>(".crisp-ann__label");
+
+    label?.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, key: "Enter" }));
+    expect(label?.classList.contains("is-masked")).toBe(true);
+    expect(edited).toEqual([]);
+
+    label?.dispatchEvent(new KeyboardEvent("keydown", {
+      bubbles: true,
+      key: "Enter",
+      shiftKey: true,
+    }));
+    expect(edited).toEqual([wrapper]);
   });
 });

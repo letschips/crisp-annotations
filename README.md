@@ -8,6 +8,7 @@ Adds hand-drawn arrows and handwritten-style notes to inline Markdown highlights
 - **Hand-drawn Arrows & Spirals**: Choose from hand-drawn, coiled spiral, wavy, or straight connectors.
 - **Quick Annotation**: Add or edit annotations via hotkey, context menu, or command palette.
 - **Annotation Center**: Browse, search, edit, copy, highlight, or remove annotations, then jump directly to their targets.
+- **Active Recall**: Mask handwritten notes and reveal them on demand without changing the Markdown or page layout.
 - **Pure Markdown Storage**: Annotations are saved as standard Markdown syntax `==highlight=={ann note="..."}`.
 
 ## Installation
@@ -60,7 +61,8 @@ Adds hand-drawn arrows and handwritten-style notes to inline Markdown highlights
 - 运行 `Crisp Annotations: Open annotation center`，可在右侧边栏切换查看“当前文档”或“整个仓库”的标注。
 - 全库模式支持搜索原文、标注内容和文件路径，也可以按颜色筛选；结果按文件分组，点击后会打开对应文章、滚动到原文位置并短暂高亮目标。
 - 鼠标移到任意标注上，可以直接编辑、开关原文高亮、复制“原文 + 标注”或删除标注；这些操作不要求先切回编辑模式。
-- 在阅读模式双击手写标注文字（键盘聚焦后也可按 Enter），可直接打开该条标注的编辑弹窗。
+- 在阅读模式单击手写标注文字，或键盘聚焦后按 Enter / 空格，可遮罩或揭晓内容；双击或按 Shift+Enter 可编辑该条标注。
+- 设置中的“自测遮罩模式”会默认隐藏所有标注文字，逐条点击即可揭晓；关闭后恢复普通阅读状态。
 - 阅读文章时，面板会自动突出并跟随滚动到当前视口附近的标注。按 `⌘/Ctrl + Alt + ↑` 或 `⌘/Ctrl + Alt + ↓` 可跳到上一条或下一条标注，并在首尾循环。
 - 运行 `Crisp Annotations: Export annotations summary to clipboard`，可把当前文档的目标文字、颜色、方向和注释复制为 Markdown 清单。
 - 标注中心会跟随 Markdown 文件的创建、编辑、重命名与删除增量更新。全库内容只在本地读取和索引，不会发送笔记内容。

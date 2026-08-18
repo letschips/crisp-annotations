@@ -164,6 +164,7 @@ function createWorkspace(): TestWorkspace {
 describe("annotation outline lifecycle", () => {
   afterEach(() => {
     vi.useRealTimers();
+    document.body.removeAttribute("data-crisp-ann-recall");
   });
 
   it("opens with annotations from the markdown leaf that launched it", async () => {
@@ -615,12 +616,51 @@ describe("annotation outline lifecycle", () => {
     expect(appearanceDocument.body.getAttribute("data-crisp-ann-theme")).toBe(
       "kindle",
     );
+    expect(appearanceDocument.body.getAttribute("data-crisp-ann-recall")).toBe(
+      "false",
+    );
 
     plugin.onunload();
 
     expect(appearanceDocument.body.hasAttribute("data-crisp-ann-theme")).toBe(
       false,
     );
+    expect(appearanceDocument.body.hasAttribute("data-crisp-ann-recall")).toBe(
+      false,
+    );
+  });
+
+  it("applies recall mode and clears stale per-label state in every document", async () => {
+    const { app } = createWorkspace();
+    const manifest = {
+      id: "crisp-annotations",
+      name: "Crisp Annotations",
+      version: "1.5.1",
+      author: "letschips",
+      minAppVersion: "1.8.0",
+      description: "Hand-drawn inline annotations for Obsidian Markdown.",
+    };
+    const plugin = new CrispAnnotationsPlugin(app, manifest);
+    plugin.app = app;
+    plugin.manifest = manifest;
+    const firstDocument = document.implementation.createHTMLDocument("first");
+    const secondDocument = document.implementation.createHTMLDocument("second");
+    firstDocument.body.innerHTML = '<span class="crisp-ann__label is-masked">One</span>';
+    secondDocument.body.innerHTML = '<span class="crisp-ann__label is-revealed">Two</span>';
+    const privatePlugin = plugin as unknown as {
+      applyAppearanceSettingsToDocument(document: Document): void;
+      setRecallMode(enabled: boolean, announce?: boolean): Promise<void>;
+    };
+    privatePlugin.applyAppearanceSettingsToDocument(firstDocument);
+    privatePlugin.applyAppearanceSettingsToDocument(secondDocument);
+
+    await privatePlugin.setRecallMode(true, false);
+
+    for (const appearanceDocument of [firstDocument, secondDocument]) {
+      expect(appearanceDocument.body.getAttribute("data-crisp-ann-recall")).toBe("true");
+      expect(appearanceDocument.querySelector(".is-masked, .is-revealed")).toBeNull();
+    }
+    expect(plugin.settings.recallMode).toBe(true);
   });
 
   it("does not let a stale editor debounce overwrite a newly active leaf", async () => {

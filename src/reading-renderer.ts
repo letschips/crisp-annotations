@@ -22,6 +22,65 @@ function blockSpacingClass(place: string): string | null {
   return null;
 }
 
+interface AnnotationMaskState {
+  masked: boolean;
+  revealed: boolean;
+}
+
+function isRecallModeEnabled(label: HTMLElement): boolean {
+  return label.ownerDocument.body.getAttribute("data-crisp-ann-recall") === "true";
+}
+
+function captureMaskState(label: HTMLElement): AnnotationMaskState {
+  return {
+    masked: label.classList.contains("is-masked"),
+    revealed: label.classList.contains("is-revealed"),
+  };
+}
+
+function isLabelVisible(label: HTMLElement): boolean {
+  return isRecallModeEnabled(label)
+    ? label.classList.contains("is-revealed")
+    : !label.classList.contains("is-masked");
+}
+
+function syncMaskAccessibility(label: HTMLElement): void {
+  label.setAttribute("aria-pressed", String(isLabelVisible(label)));
+}
+
+function restoreMaskState(label: HTMLElement, state: AnnotationMaskState): void {
+  label.classList.toggle("is-masked", state.masked);
+  label.classList.toggle("is-revealed", state.revealed);
+  syncMaskAccessibility(label);
+}
+
+function toggleMaskState(label: HTMLElement): void {
+  if (isRecallModeEnabled(label)) {
+    label.classList.remove("is-masked");
+    label.classList.toggle("is-revealed");
+  } else {
+    label.classList.remove("is-revealed");
+    label.classList.toggle("is-masked");
+  }
+  syncMaskAccessibility(label);
+}
+
+export function resetAnnotationMaskState(
+  ownerDocument: Document,
+  recallMode: boolean,
+): void {
+  for (const label of ownerDocument.querySelectorAll<HTMLElement>(
+    ".crisp-ann__label.is-revealed, .crisp-ann__label.is-masked",
+  )) {
+    label.classList.remove("is-revealed", "is-masked");
+  }
+  for (const label of ownerDocument.querySelectorAll<HTMLElement>(
+    '.crisp-ann__label[aria-pressed]',
+  )) {
+    label.setAttribute("aria-pressed", String(!recallMode));
+  }
+}
+
 export type ReadingAnnotationEditHandler = (
   wrapper: HTMLElement,
   annotation: ReturnType<typeof findAnnotations>[number],
@@ -67,20 +126,43 @@ export function renderAnnotationsInElement(
     label.textContent = annotation.spec.note;
     if (onEdit) {
       label.classList.add("crisp-ann__label--editable");
+      label.setAttribute("role", "button");
+      label.setAttribute("aria-keyshortcuts", "Enter Space Shift+Enter");
       label.tabIndex = 0;
-      label.title = "双击编辑标注";
+      label.title = "单击或按 Enter 遮罩/揭晓 · 双击或按 Shift+Enter 编辑标注";
+      syncMaskAccessibility(label);
+      let pointerStartState: AnnotationMaskState | null = null;
+      label.addEventListener("click", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        if (event.detail > 1) {
+          return;
+        }
+        pointerStartState = captureMaskState(label);
+        toggleMaskState(label);
+      });
       label.addEventListener("dblclick", (event) => {
         event.preventDefault();
         event.stopPropagation();
+        if (pointerStartState) {
+          restoreMaskState(label, pointerStartState);
+          pointerStartState = null;
+        }
         onEdit(wrapper, annotation, renderedIndex);
       });
       label.addEventListener("keydown", (event) => {
+        if (event.shiftKey && event.key === "Enter") {
+          event.preventDefault();
+          event.stopPropagation();
+          onEdit(wrapper, annotation, renderedIndex);
+          return;
+        }
         if (event.key !== "Enter" && event.key !== " ") {
           return;
         }
         event.preventDefault();
         event.stopPropagation();
-        onEdit(wrapper, annotation, renderedIndex);
+        toggleMaskState(label);
       });
     }
 

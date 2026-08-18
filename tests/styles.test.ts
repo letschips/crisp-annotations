@@ -158,7 +158,25 @@ describe("plugin styles", () => {
   it("keeps reading-mode annotation labels directly editable", () => {
     expect(styles).toContain(".crisp-ann__label--editable");
     expect(styles).toContain("pointer-events: auto");
-    expect(styles).toContain("cursor: text");
+    expect(styles).toContain("cursor: pointer");
+  });
+
+  it("masks recall text without changing the label box geometry", () => {
+    const maskedRule = styles.match(
+      /body\[data-crisp-ann-recall="true"\][\s\S]*?\.crisp-ann__label:not\(\.is-revealed\)\s*\{[^}]*\}/,
+    )?.[0] ?? "";
+    expect(maskedRule).toContain("color: transparent");
+    expect(maskedRule).toContain("text-shadow:");
+    expect(maskedRule).not.toContain("padding:");
+    expect(maskedRule).not.toContain("border:");
+    expect(styles).toContain(".crisp-ann__label.is-revealed");
+    expect(styles).toContain("body[data-crisp-ann-recall=\"true\"]");
+  });
+
+  it("always reveals annotation text in print and PDF export", () => {
+    const printBlock = styles.match(/@media print\s*\{[\s\S]*?\n\}/)?.[0] ?? "";
+    expect(printBlock).toContain("data-crisp-ann-recall");
+    expect(printBlock).toContain("color: var(--crisp-ann-color) !important");
   });
 
   it("keeps choice motion explicit and fine-pointer gated", () => {
