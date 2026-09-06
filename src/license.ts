@@ -75,7 +75,8 @@ function getDeviceId(): string {
  */
 export async function verifyLicenseCode(
   licenseCode: string,
-  targetPluginId: string = "crisp-annotations"
+  targetPluginId: string = "crisp-annotations",
+  skipOnline: boolean = false
 ): Promise<LicenseVerifyResult> {
   const trimmed = licenseCode.trim();
   if (!trimmed) {
@@ -128,19 +129,28 @@ export async function verifyLicenseCode(
       return { valid: false, reason: "授权签名无效或伪造" };
     }
 
+    if (skipOnline) {
+      return { valid: true, payload };
+    }
+
     try {
       const deviceId = getDeviceId();
-      const res = await requestUrl({
-        url: WORKER_VERIFY_URL,
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          licenseCode: trimmed,
-          deviceId: deviceId,
-          action: "activate",
-          pluginId: targetPluginId
-        })
-      });
+      const res = await Promise.race([
+        requestUrl({
+          url: WORKER_VERIFY_URL,
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            licenseCode: trimmed,
+            deviceId: deviceId,
+            action: "activate",
+            pluginId: targetPluginId
+          })
+        }),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("Crisp license check timeout")), 2500)
+        )
+      ]);
 
       const cloudResult = res.json as { valid?: boolean; reason?: string; message?: string };
       if (cloudResult && typeof cloudResult.valid === "boolean") {

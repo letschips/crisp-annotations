@@ -104,6 +104,7 @@ export default class CrispAnnotationsPlugin extends Plugin {
   private readonly readingScrollDocuments = new Set<Document>();
   private readonly readingSyncFrames = new Map<Document, number>();
   private readonly readingSourceIndexes = new WeakMap<Editor, ReadingSourceIndex>();
+  private licenseCacheValid = false;
 
   async onload(): Promise<void> {
     registerIcons();
@@ -319,6 +320,7 @@ export default class CrispAnnotationsPlugin extends Plugin {
   }
 
   async saveSettings(): Promise<void> {
+    this.licenseCacheValid = false;
     await this.saveData(this.settings);
     this.applyAppearanceSettings();
     this.marginLayout.refreshAll();
@@ -539,11 +541,15 @@ export default class CrispAnnotationsPlugin extends Plugin {
       new Notice("🔒 Crisp Annotations 未激活，请先在插件设置中激活 Crisp 授权。");
       return false;
     }
-    const check = await verifyLicenseCode(this.settings.licenseCode, "crisp-annotations");
+    if (this.licenseCacheValid) {
+      return true;
+    }
+    const check = await verifyLicenseCode(this.settings.licenseCode, "crisp-annotations", true);
     if (!check.valid) {
       new Notice(`🔒 Crisp Annotations 授权无效: ${check.reason || "未激活"}`);
       return false;
     }
+    this.licenseCacheValid = true;
     return true;
   }
 
