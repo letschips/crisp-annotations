@@ -17,7 +17,7 @@ export interface LicenseVerifyResult {
   message?: string;
 }
 
-const WORKER_VERIFY_URL = "https://crisp-license.helloherve-xsn.workers.dev/api/verify-device";
+const WORKER_VERIFY_URL = "https://license.letschips.xyz/api/verify-device";
 
 export const CRISP_PUBLIC_KEY_PEM = `-----BEGIN PUBLIC KEY-----
 MCowBQYDK2VwAyEAiz41HIDpD59SH3DjKnovUO+EEhTJXjvmiug/ev9t4ZQ=
