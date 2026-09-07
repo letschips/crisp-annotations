@@ -145,24 +145,45 @@ export async function verifyLicenseCode(
             deviceId: deviceId,
             action: "activate",
             pluginId: targetPluginId
-          })
+          }),
+          throw: false
         }),
         new Promise<never>((_, reject) =>
           setTimeout(() => reject(new Error("Crisp license check timeout")), 2500)
         )
       ]);
 
-      const cloudResult = res.json as { valid?: boolean; reason?: string; message?: string };
-      if (cloudResult && typeof cloudResult.valid === "boolean") {
-        if (cloudResult.valid === false) {
-          return { valid: false, reason: cloudResult.reason || "设备数已达上限" };
-        }
+      let cloudResult: { valid?: boolean; reason?: string; message?: string; errorType?: string } | null = null;
+      try {
+        cloudResult = res.json as { valid?: boolean; reason?: string; message?: string; errorType?: string };
+      } catch {
+        cloudResult = null;
+      }
+
+      // 1. 明确的服务端业务拒绝（200/400/401/403 且带有明确的 valid: false）
+      const isAuthDenial =
+        (res.status === 200 || res.status === 400 || res.status === 401 || res.status === 403) &&
+        cloudResult !== null &&
+        cloudResult.valid === false;
+
+      if (isAuthDenial) {
+        return {
+          valid: false,
+          reason: cloudResult?.reason || "授权已被服务端拒绝或设备数已达上限"
+        };
+      }
+
+      // 2. 服务端明确批准（200 OK 且 valid: true）
+      if (res.status === 200 && cloudResult && cloudResult.valid === true) {
         return {
           valid: true,
           payload,
           message: cloudResult.message
         };
       }
+
+      // 3. 服务端异常或不可达时，记录警告并宽容放行
+      console.warn(`[Crisp Annotations] 授权服务器返回异常状态码: ${res.status}，临时以本地有效签名离线放行`);
     } catch (netErr) {
       console.debug("Crisp Annotations license online check offline fallback", netErr);
     }
