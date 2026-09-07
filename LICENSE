@@ -1,21 +1,75 @@
-MIT License
+# Crisp Software License Agreement (Proprietary & Single-User Commercial License)
+# Crisp 软件授权与许可协议（专有软件·凭正版激活码授权）
 
-Copyright (c) 2026 letschips
+Copyright (c) 2026 letschips. All rights reserved.  
+版权所有 (c) 2026 letschips。保留所有权利。
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+----------------------------------------------------------------------
+中文版本（如与英文版本存在任何歧义或冲突，以中文版本为准）
+----------------------------------------------------------------------
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+本仓库及包含的所有源代码、编译产物、界面设计、音频素材、文档及相关资产（以下统称“本软件”）版权均归作者（letschips）所有。本软件为专有商业软件（Proprietary Software），受中华人民共和国著作权法、国际版权条约及相关法律保护。
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+本软件并非自由开源软件（FOSS），任何使用均须严格遵守以下条款：
+
+### 1. 合法授权与使用许可
+- **授权前提**：本软件仅向通过官方合法途径购买 Crisp 套装、获取作者正式发放的有效激活码（或经作者事先明确书面授权）的用户授予使用权。
+- **许可范围**：持有合法有效激活码的用户，被授予一项个人的、非独占的、不可转让的、不可再许可的权利，允许在受支持的 Obsidian 客户端及授权设备数量限制内，安装并运行未经修改的本软件官方发行版本。
+- **未授权/未激活限制**：未持有合法有效激活码的任何个人或机构，除在官方公开仓库中查阅公开源代码用于个人学习、评估或安全审查外，无权解锁或完整使用本软件的付费/高级功能，更无权将本软件部署于日常工作或生产环境中。
+
+### 2. 禁止事项（核心红线）
+未经作者事先明确的书面许可，任何个人或机构均不得：
+a. **严禁破解与绕过验证**：通过反编译、逆向工程、反混淆、动态调试、修改源码或脚本（包括但不限于修改 main.js 移除激活码校验、绕过 Ed25519 签名验证、模拟授权验证服务、阻断网络校验逻辑等任何技术手段）破解本软件，或制作、使用、传播任何破解补丁、脱机补丁与篡改版本；
+b. **严禁二次开发与衍生版本分发**：对本软件进行修改、汉化、二次开发、剥离功能、编译衍生版本，并以任何形式（包括但不限于重新命名、重新打包、上传至 GitHub/Gitee、发布至第三方插件市场、网盘或社群）对外分发；
+c. **严禁非法分享与伪造授权**：转售、出借、出租、公开发布、泄露或与未经许可的第三方共享激活码，或试图伪造、暴力破解、算法批量生成激活码；
+d. **严禁代码侵权与提取合并**：将本软件的全部或部分源代码、核心逻辑、设计、音频资源提取、合并或嵌入到任何其他公开或私有项目中；
+e. **严禁商业化牟利与转售**：将本软件用于任何形式的转售、收费分发、付费代装、捆绑销售、SaaS 托管服务或任何其他营利性商业活动；
+f. **严禁删除或篡改版权标识**：移除、篡改或遮盖本软件内包含的任何版权声明、作者署名（letschips）或本许可协议。
+
+### 3. 保留权利
+本协议未明确授予被许可人的所有权利，均由作者（letschips）完整保留。作者保留随时更新软件、升级授权验证体系及调整许可条款的权利。
+
+### 4. 免责声明
+本软件按“现状”（AS-IS）提供，作者不提供任何明示或暗示的担保（包括但不限于适销性、特定用途适用性及无缺陷运行的担保）。在适用法律允许的最大范围内，作者对因安装、使用或无法使用本软件所产生的任何直接、间接、附带或后果性损失（包括但不限于数据丢失、笔记损坏或业务中断）不承担任何责任。
+
+### 5. 协议终止与侵权追责
+任何违反本协议条款的行为（尤其是任何形式的破解、绕过验证、侵权二次开发或未经授权的分发），均构成对作者知识产权的严重侵权。违约发生时，您的使用许可将自动且立即终止，您必须立即停止使用并彻底删除本软件的所有副本与激活凭证。作者保留依法追究侵权方民事赔偿责任与法律责任的一切权利。
+
+### 6. 正版购买与联系方式
+- 官方作者：小红书 @letschips / 微信公众号「letschips」
+- 正版激活码获取、授权咨询或商业合作，请通过上述官方平台私信联系。
+
+----------------------------------------------------------------------
+English Version (Provided for reference; Chinese version prevails)
+----------------------------------------------------------------------
+
+All source code, compiled binaries, visual designs, audio assets, documentation, and associated materials contained herein (collectively, the "Software") are copyrighted by the author (letschips). The Software is proprietary commercial software protected under international copyright treaties and applicable laws.
+
+This Software is NOT free/open-source software (FOSS). Any access or use is strictly governed by the following terms:
+
+### 1. License Grant and Authorized Use
+- **Prerequisite**: Use of the Software is granted strictly and exclusively to users who have legitimately purchased the Crisp Suite or obtained an authentic activation code directly from the author (or received prior express written permission).
+- **Scope of License**: Authorized license holders receive a personal, non-exclusive, non-transferable, non-sublicensable license to install and run the official, unmodified release of the Software within allowed device limits on supported Obsidian installations.
+- **Unauthorized / Unactivated Restriction**: Without a genuine activation code, you have no right to unlock or use the paid features. Viewing public source code is permitted solely for personal learning, evaluation, and security audit purposes.
+
+### 2. Prohibited Actions
+Without prior express written permission from the author, you shall NOT:
+a. **Crack or Circumvent Protections**: Reverse engineer, decompile, disassemble, patch, or alter scripts or binaries (including but not limited to modifying main.js to strip activation checks, bypassing Ed25519 signature checks, mocking verification endpoints, or altering licensing routines), or create, use, or distribute cracks or patches;
+b. **Create Derivatives or Redistribute**: Modify, adapt, create derivative works of, repackage, or distribute the Software in any manner (including renaming, uploading to GitHub/Gitee, publishing to third-party marketplaces, cloud storages, or communities);
+c. **Share or Counterfeit License Keys**: Resell, rent, lease, publicly post, leak, or share activation codes, or attempt to forge, crack, or systematically generate activation credentials;
+d. **Code Extraction or Embedding**: Extract, merge, or incorporate any code, architecture, design assets, or audio files into any other project;
+e. **Commercial Exploitation**: Use the Software for resale, fee-based distribution, paid installation services, SaaS hosting, or any unauthorized commercial gain;
+f. **Remove Copyright Notices**: Remove, obscure, or modify any copyright notices, author attribution (letschips), or this License file.
+
+### 3. Reservation of Rights
+All rights not expressly granted herein are strictly reserved by the author (letschips).
+
+### 4. Disclaimer of Warranty
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY ARISING FROM THE USE OF OR INABILITY TO USE THE SOFTWARE.
+
+### 5. Termination & Legal Remedies
+Any breach of this Agreement immediately and automatically terminates your license. You must immediately cease use and delete all copies of the Software and license credentials. The author reserves all legal rights to seek statutory damages and injunctive relief under applicable law.
+
+### 6. Official Contact
+- Author: Xiaohongshu @letschips / WeChat Official Account "letschips"
+- For authentic licenses, business partnerships, or authorization inquiries, please contact via the official channels above.

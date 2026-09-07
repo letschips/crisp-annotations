@@ -18,7 +18,7 @@
     "margin-notes"
   ],
   "author": "小红书 letschips",
-  "license": "MIT",
+  "license": "SEE LICENSE IN LICENSE",
   "devDependencies": {
     "@codemirror/state": "6.5.0",
     "@codemirror/view": "6.38.6",
@@ -32,5 +32,6 @@
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.64.0",
     "vitest": "^4.1.10"
-  }
+  },
+  "private": true
 }
