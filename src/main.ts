@@ -233,27 +233,27 @@ export default class CrispAnnotationsPlugin extends Plugin {
 
     this.addCommand({
       id: "add-or-edit-annotation",
-      name: "Add or edit annotation",
+      name: "Add or edit annotation (添加或编辑标注)",
       editorCallback: (editor) => this.openAnnotationModal(editor),
     });
     this.addCommand({
       id: "remove-annotation",
-      name: "Remove annotation",
+      name: "Remove annotation (删除标注)",
       editorCallback: (editor) => this.removeAnnotation(editor),
     });
     this.addCommand({
       id: "open-annotation-outline",
-      name: "Open annotation center",
+      name: "Open annotation center (打开标注中心)",
       callback: () => this.openAnnotationOutline(),
     });
     this.addCommand({
       id: "add-quick-annotation",
-      name: "Quick annotation",
+      name: "Quick annotation (快速标注)",
       editorCallback: (editor) => this.openQuickAnnotationModal(editor),
     });
     this.addCommand({
       id: "export-annotations-summary",
-      name: "Export annotations summary to clipboard",
+      name: "Export annotations summary to clipboard (导出标注汇总)",
       editorCallback: (editor) => this.exportAnnotationsSummary(editor),
     });
     this.addCommand({
@@ -265,13 +265,13 @@ export default class CrispAnnotationsPlugin extends Plugin {
     });
     this.addCommand({
       id: "previous-annotation",
-      name: "Go to previous annotation",
+      name: "Go to previous annotation (跳转到上一条标注)",
       hotkeys: [{ modifiers: ["Mod", "Alt"], key: "ArrowUp" }],
       callback: () => this.navigateAdjacentAnnotation("previous"),
     });
     this.addCommand({
       id: "next-annotation",
-      name: "Go to next annotation",
+      name: "Go to next annotation (跳转到下一条标注)",
       hotkeys: [{ modifiers: ["Mod", "Alt"], key: "ArrowDown" }],
       callback: () => this.navigateAdjacentAnnotation("next"),
     });
