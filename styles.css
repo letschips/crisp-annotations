@@ -859,7 +859,7 @@ body[data-crisp-ann-recall="true"] .crisp-ann__label.is-revealed {
 .crisp-ann-modal__color-dot[data-color="green"] { background: #2f8f5b; }
 .crisp-ann-modal__color-dot[data-color="red"] { background: #c45a38; }
 .crisp-ann-modal__color-dot[data-color="purple"] { background: #8657c8; }
-.crisp-ann-modal__color-dot[data-color="rainbow"] { background: linear-gradient(135deg, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #8b00ff); }
+.crisp-ann-modal__color-dot[data-color="rainbow"] { background: linear-gradient(135deg, #de929c 0%, #e9b27f 24%, #d6c984 43%, #8ebaa6 62%, #89a9d1 80%, #b09ac9 100%); border-color: transparent; }
 .crisp-ann-modal__color-dot[data-color="custom"] { background: var(--crisp-ann-custom-color, #3b82f6); }
 
 .crisp-ann-modal__compass-grid {
@@ -2679,4 +2679,157 @@ body.is-mobile .crisp-ann-block--space-top {
   .crisp-ann-setting-card__body {
     transition: none;
   }
+}
+
+/* Native glass trial: preserve annotation pigments and selected controls. */
+body.is-translucent:not(.is-popout-window):not(.is-popout-modal) .crisp-ann-outline-view {
+  --ann-glass-fill: color-mix(in srgb, var(--background-primary) 14%, transparent);
+  --ann-glass-control: color-mix(in srgb, var(--text-normal) 6%, transparent);
+  --ann-glass-edge: color-mix(in srgb, var(--text-normal) 13%, transparent);
+  --ann-glass-rim: rgba(255,255,255,0.16);
+  --text-muted: color-mix(in srgb, var(--text-normal) 78%, transparent);
+  --text-faint: color-mix(in srgb, var(--text-normal) 66%, transparent);
+}
+body.is-translucent.theme-light:not(.is-popout-window):not(.is-popout-modal) .crisp-ann-outline-view {
+  --ann-glass-rim: rgba(255,255,255,0.65);
+}
+body.is-translucent:not(.is-popout-window):not(.is-popout-modal) .crisp-ann-outline-view {
+  background: transparent !important;
+}
+body.is-translucent:not(.is-popout-window):not(.is-popout-modal) .crisp-ann-outline-view .crisp-ann-outline-file-group {
+  background: var(--ann-glass-fill);
+  border-color: var(--ann-glass-edge);
+  border-radius: 14px;
+  box-shadow: inset 0 1px 0 var(--ann-glass-rim);
+}
+body.is-translucent:not(.is-popout-window):not(.is-popout-modal) .crisp-ann-outline-view :is(.crisp-ann-outline-search__input,.crisp-ann-outline-search__color) {
+  background-color: var(--ann-glass-control) !important;
+  border-color: var(--ann-glass-edge);
+  box-shadow: inset 0 1px 0 var(--ann-glass-rim);
+}
+/* Reading and editing dialogs need an opaque backing over document text.
+   Set Baseline's token too, so its global modal rule cannot restore translucency. */
+body .modal.crisp-ann-dialog {
+  --crisp-dialog-surface: var(--background-primary);
+  --btw-glass-dialog: var(--background-primary);
+  background: var(--background-primary) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Document-card experiment: opaque writing surface, quiet grouped controls. */
+body .modal.crisp-ann-dialog {
+  border-radius: 24px;
+}
+.crisp-ann-dialog .modal-title {
+  width: fit-content;
+  max-width: calc(100% - 64px);
+  padding: 18px 26px;
+  border-radius: 0 0 20px 0;
+  background: var(--background-secondary);
+  font-size: 20px;
+  font-weight: 600;
+}
+.crisp-ann-dialog .crisp-ann-modal {
+  gap: 18px;
+  padding: 22px 24px 18px;
+}
+.crisp-ann-dialog .crisp-ann-modal__field--note {
+  border: 1px solid var(--crisp-dialog-divider) !important;
+  border-radius: 16px;
+  padding: 16px !important;
+  background: var(--background-primary);
+}
+.crisp-ann-dialog .crisp-ann-modal__note {
+  min-height: 90px;
+  background: var(--background-primary) !important;
+  line-height: 1.8;
+  border-radius: 12px;
+}
+.crisp-ann-dialog :is(.crisp-ann-modal__color-container,.crisp-ann-modal__compass-container) {
+  background: transparent;
+  padding: 0;
+}
+.crisp-ann-dialog :is(.crisp-ann-modal__color-swatches,.crisp-ann-modal__compass-grid) {
+  background: var(--background-secondary);
+  border: 1px solid var(--crisp-dialog-divider);
+  border-radius: 14px;
+  padding: 7px;
+}
+.crisp-ann-dialog .crisp-ann-modal__footer {
+  width: fit-content;
+  max-width: 100%;
+  align-self: center;
+  margin: 4px 0 2px !important;
+  padding: 8px !important;
+  border: 1px solid var(--crisp-dialog-divider) !important;
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--background-secondary) 75%, transparent) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.2), 0 4px 14px rgba(0,0,0,0.05);
+}
+.crisp-ann-dialog .crisp-ann-modal__footer .setting-item-control {
+  margin: 0;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+.crisp-ann-dialog .crisp-ann-modal__footer button {
+  border-radius: 12px;
+}
+@media (max-height: 740px), (max-width: 480px) {
+  .crisp-ann-dialog .modal-title { padding: 14px 20px; font-size: 18px; }
+  .crisp-ann-dialog .crisp-ann-modal { padding: 16px; gap: 12px; }
+  .crisp-ann-dialog .crisp-ann-modal__field--note { padding: 12px !important; }
+  .crisp-ann-dialog .crisp-ann-modal__note { min-height: 64px; }
+}
+/* Keep actions in document flow so they never cover reading options. */
+.crisp-ann-dialog .crisp-ann-modal__field--note { border-radius: 16px !important; }
+.crisp-ann-dialog .crisp-ann-modal__footer {
+  position: static !important;
+  bottom: auto;
+  z-index: auto !important;
+  flex-shrink: 0;
+  border-radius: 18px !important;
+  background: var(--background-secondary) !important;
+}
+
+/* Compact, aligned form rhythm; short windows scroll the complete form. */
+.crisp-ann-dialog .crisp-ann-modal {
+  gap: 14px;
+  padding: 18px 24px 20px;
+}
+.crisp-ann-dialog .crisp-ann-modal > * { flex-shrink: 0; }
+.crisp-ann-dialog .crisp-ann-modal__choices {
+  align-items: start;
+  gap: 20px;
+}
+.crisp-ann-dialog .crisp-ann-modal__choices .setting-item {
+  height: auto;
+}
+.crisp-ann-dialog .crisp-ann-modal__choices .setting-item-info {
+  flex: 0 0 auto !important;
+  margin-bottom: 8px !important;
+}
+.crisp-ann-dialog .crisp-ann-modal__choices .setting-item-control {
+  flex: 0 0 auto !important;
+  margin: 0 !important;
+}
+.crisp-ann-dialog :is(.crisp-ann-modal__color-container,.crisp-ann-modal__compass-container) {
+  flex: 0 0 auto;
+  margin-top: 0;
+}
+.crisp-ann-dialog .crisp-ann-modal__note { min-height: 72px; }
+.crisp-ann-dialog .crisp-ann-modal__footer {
+  width: auto !important;
+  max-width: 100%;
+  align-self: flex-end;
+  margin: 4px 0 0 !important;
+}
+@media (max-width: 480px) {
+  .crisp-ann-dialog .crisp-ann-modal { padding: 14px 16px 18px; }
+  .crisp-ann-dialog .crisp-ann-modal__choices { grid-template-columns: 1fr; gap: 16px; }
+}
+body .modal.crisp-ann-dialog {
+  max-height: min(calc(100vh - 40px), 820px) !important;
+  max-height: min(calc(100dvh - 40px), 820px) !important;
 }
