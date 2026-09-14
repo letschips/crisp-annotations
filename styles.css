@@ -2172,7 +2172,7 @@ body.is-mobile .crisp-ann-block--space-top {
     transparent
   );
   border-radius: 8px;
-  background: var(--background-primary);
+  background-color: var(--background-primary);
   font-size: var(--font-ui-smaller);
 }
 
