@@ -2833,3 +2833,926 @@ body .modal.crisp-ann-dialog {
   max-height: min(calc(100vh - 40px), 820px) !important;
   max-height: min(calc(100dvh - 40px), 820px) !important;
 }
+
+
+/* ==========================================================================
+   CRISP ANNOTATIONS - VINTAGE RADIO PHYSICAL DIALOG AESTHETIC (V3 REFINED)
+   ========================================================================== */
+
+:root {
+  /* Day Mode Theme Variables (Base #D9D9D7) */
+  --crisp-radio-day-bg: #D9D9D7;
+  --crisp-radio-day-border: #b8b7b1;
+  --crisp-radio-day-highlight: rgba(255, 255, 255, 0.9);
+  --crisp-radio-day-shadow: 0 22px 60px rgba(0, 0, 0, 0.22), 0 5px 16px rgba(0, 0, 0, 0.08);
+  --crisp-radio-day-lcd-bg: #CAD4BF;
+  --crisp-radio-day-lcd-border: #98a68c;
+  --crisp-radio-day-lcd-text: #1d2b1a;
+  --crisp-radio-day-lcd-faint: #546551;
+  /* Dials in Day Mode: Noticeably deeper contrast against #D9D9D7 */
+  --crisp-radio-day-dish-bg: #afa9a1;
+  --crisp-radio-day-dish-border: #8f8981;
+  --crisp-radio-day-knob-face: #c0bbb2;
+  --crisp-radio-day-knob-border: #948f86;
+  --crisp-radio-day-knob-shadow: 0 5px 14px rgba(0, 0, 0, 0.25), inset 0 1px 1px rgba(255, 255, 255, 0.9);
+  --crisp-radio-day-needle: #1c1e20;
+  --crisp-radio-day-needle-tip: #e25c34;
+  --crisp-radio-day-block-bg: #eceae5;
+  --crisp-radio-day-block-border: #c4c2bc;
+  --crisp-radio-day-block-text: #2a2c2e;
+  --crisp-radio-day-text-primary: #242628;
+  --crisp-radio-day-text-muted: #585c64;
+
+  /* Night Mode Theme Variables (Base Deep Charcoal #1E2023) */
+  --crisp-radio-night-bg: #1E2023;
+  --crisp-radio-night-border: #2d3136;
+  --crisp-radio-night-highlight: rgba(255, 255, 255, 0.1);
+  --crisp-radio-night-shadow: 0 24px 64px rgba(0, 0, 0, 0.55), 0 6px 20px rgba(0, 0, 0, 0.35);
+  --crisp-radio-night-lcd-bg: #131714;
+  --crisp-radio-night-lcd-border: #222b24;
+  --crisp-radio-night-lcd-text: #a6d6ac;
+  --crisp-radio-night-lcd-faint: #4e6b52;
+  --crisp-radio-night-dish-bg: #151719;
+  --crisp-radio-night-dish-border: #24272c;
+  --crisp-radio-night-knob-face: #282c31;
+  --crisp-radio-night-knob-border: #3b4048;
+  --crisp-radio-night-knob-shadow: 0 5px 14px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  --crisp-radio-night-needle: #f0f3f6;
+  --crisp-radio-night-needle-tip: #34d399;
+  --crisp-radio-night-block-bg: #26292d;
+  --crisp-radio-night-block-border: #383c42;
+  --crisp-radio-night-block-text: #d8dce2;
+  --crisp-radio-night-text-primary: #e6e9ed;
+  --crisp-radio-night-text-muted: #8d939e;
+}
+
+/* Base Modal Container Override: Solid #D9D9D7 in Day Mode, #1E2023 in Night Mode */
+body .modal.crisp-radio-dialog,
+body .modal.crisp-ann-dialog.crisp-radio-dialog,
+body.theme-light .modal.crisp-ann-dialog.crisp-radio-dialog,
+body.theme-light .modal.crisp-radio-dialog,
+.modal.crisp-radio-dialog {
+  width: min(570px, 94vw) !important;
+  max-width: 570px !important;
+  border-radius: 26px !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  border: 1px solid var(--crisp-radio-day-border) !important;
+  background: #D9D9D7 !important;
+  background-color: #D9D9D7 !important;
+  --crisp-dialog-surface: #D9D9D7 !important;
+  --btw-glass-dialog: #D9D9D7 !important;
+  box-shadow: var(--crisp-radio-day-shadow), inset 0 1px 0 var(--crisp-radio-day-highlight) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+body.theme-dark .modal.crisp-radio-dialog,
+body.theme-dark .modal.crisp-ann-dialog.crisp-radio-dialog {
+  border: 1px solid var(--crisp-radio-night-border) !important;
+  background: #1E2023 !important;
+  background-color: #1E2023 !important;
+  --crisp-dialog-surface: #1E2023 !important;
+  --btw-glass-dialog: #1E2023 !important;
+  box-shadow: var(--crisp-radio-night-shadow), inset 0 1px 0 var(--crisp-radio-night-highlight) !important;
+}
+
+/* Hide default obsidian modal title & tweak close button */
+.crisp-radio-dialog .modal-title {
+  display: none !important;
+}
+
+.crisp-radio-dialog .modal-close-button {
+  top: 15px !important;
+  right: 16px !important;
+  z-index: 50 !important;
+  width: 26px !important;
+  height: 26px !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: rgba(0, 0, 0, 0.08) !important;
+  color: var(--crisp-radio-day-text-muted) !important;
+  transition: transform 0.15s ease, background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
+.crisp-radio-dialog .modal-close-button:hover {
+  background: rgba(0, 0, 0, 0.15) !important;
+  color: var(--crisp-radio-day-text-primary) !important;
+  transform: scale(1.08);
+}
+body.theme-dark .crisp-radio-dialog .modal-close-button {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  color: var(--crisp-radio-night-text-muted) !important;
+}
+body.theme-dark .crisp-radio-dialog .modal-close-button:hover {
+  background: rgba(255, 255, 255, 0.16) !important;
+  color: var(--crisp-radio-night-text-primary) !important;
+}
+
+/* Main Modal Content Padding & Layout */
+.crisp-radio-modal {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 14px !important;
+  padding: 18px 22px 20px !important;
+  background: transparent !important;
+  color: var(--crisp-radio-day-text-primary) !important;
+  box-sizing: border-box !important;
+  user-select: none;
+}
+body.theme-dark .crisp-radio-modal {
+  color: var(--crisp-radio-night-text-primary) !important;
+}
+
+/* 1. Header Bar: Gooey SVG Icon + "Annotation" only */
+.crisp-radio-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 34px 2px 2px;
+}
+.crisp-radio-header__brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.crisp-radio-header__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  color: var(--crisp-radio-day-text-primary);
+}
+body.theme-dark .crisp-radio-header__icon {
+  color: var(--crisp-radio-night-text-primary);
+}
+.crisp-radio-header__icon svg {
+  display: block;
+  width: 22px;
+  height: 22px;
+}
+.crisp-radio-header__title {
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.015em;
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  color: var(--crisp-radio-day-text-primary);
+}
+body.theme-dark .crisp-radio-header__title {
+  color: var(--crisp-radio-night-text-primary);
+}
+
+/* 2. Note Screen (LCD Cassette Window) */
+.crisp-radio-screen {
+  background: var(--crisp-radio-day-lcd-bg);
+  border: 1px solid var(--crisp-radio-day-lcd-border);
+  border-radius: 15px;
+  padding: 12px 16px 10px;
+  box-shadow: inset 1px 2px 6px rgba(35, 45, 30, 0.22), inset -1px -1px 2px rgba(255, 255, 255, 0.5), 0 1px 2px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+body.theme-dark .crisp-radio-screen {
+  background: var(--crisp-radio-night-lcd-bg);
+  border: 1px solid var(--crisp-radio-night-lcd-border);
+  box-shadow: inset 2px 2px 8px rgba(0, 0, 0, 0.65), inset -1px -1px 2px rgba(255, 255, 255, 0.05);
+}
+
+.crisp-radio-screen__top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--crisp-radio-day-lcd-faint);
+}
+body.theme-dark .crisp-radio-screen__top {
+  color: var(--crisp-radio-night-lcd-faint);
+}
+.crisp-radio-screen__rec {
+  color: var(--crisp-radio-day-lcd-faint);
+  transition: color 0.15s ease;
+}
+.crisp-radio-screen__rec.is-active {
+  color: #c45a38;
+}
+body.theme-dark .crisp-radio-screen__rec.is-active {
+  color: #34d399;
+  text-shadow: 0 0 6px rgba(52, 211, 153, 0.4);
+}
+
+.crisp-radio-screen__body {
+  width: 100%;
+}
+/* Textarea with clean padding to avoid clipping top-left rounded border */
+.crisp-radio-screen__textarea {
+  width: 100% !important;
+  min-height: 68px !important;
+  max-height: 140px !important;
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  resize: vertical !important;
+  padding: 6px 10px !important;
+  font-size: 15.5px !important;
+  font-weight: 600 !important;
+  line-height: 1.55 !important;
+  color: var(--crisp-radio-day-lcd-text) !important;
+  font-family: var(--font-text), ui-sans-serif, system-ui, sans-serif !important;
+  box-sizing: border-box !important;
+}
+body.theme-dark .crisp-radio-screen__textarea {
+  color: var(--crisp-radio-night-lcd-text) !important;
+  text-shadow: 0 0 1px rgba(166, 214, 172, 0.3) !important;
+}
+.crisp-radio-screen__textarea::placeholder {
+  color: var(--crisp-radio-day-lcd-faint) !important;
+  opacity: 0.7;
+}
+body.theme-dark .crisp-radio-screen__textarea::placeholder {
+  color: var(--crisp-radio-night-lcd-faint) !important;
+  opacity: 0.65;
+}
+
+.crisp-radio-screen__bottom {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 10px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
+  font-weight: 600;
+  color: var(--crisp-radio-day-lcd-faint);
+  letter-spacing: 0.05em;
+  overflow: hidden;
+}
+body.theme-dark .crisp-radio-screen__bottom {
+  color: var(--crisp-radio-night-lcd-faint);
+}
+.crisp-radio-screen__meta {
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+  min-width: 80px;
+}
+.crisp-radio-screen__scale {
+  opacity: 0.6;
+  letter-spacing: 2px;
+  overflow: hidden;
+  white-space: nowrap;
+  flex: 1 1 auto;
+}
+
+.crisp-radio-error {
+  margin: -4px 0 0 2px !important;
+  font-size: 11.5px !important;
+  font-weight: 600 !important;
+  color: #dc2626 !important;
+}
+
+/* 3. Middle Controls Row: [Placement Dial] [Highlight Pill] [Color Dial] */
+.crisp-radio-controls {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 14px;
+  align-items: center;
+  padding: 4px 0;
+}
+
+.crisp-radio-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.crisp-radio-panel__header {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 4px;
+}
+.crisp-radio-panel__title {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--crisp-radio-day-text-muted);
+  letter-spacing: 0.02em;
+}
+body.theme-dark .crisp-radio-panel__title {
+  color: var(--crisp-radio-night-text-muted);
+}
+.crisp-radio-panel__badge {
+  font-size: 10px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.07);
+  color: var(--crisp-radio-day-text-primary);
+  letter-spacing: 0.02em;
+}
+body.theme-dark .crisp-radio-panel__badge {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--crisp-radio-night-text-muted);
+}
+
+/* Rotary Dial Container & Sunken Dish Bezel */
+.crisp-radio-dial-container {
+  width: 140px;
+  height: 140px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: none;
+}
+.crisp-radio-dial-bezel {
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  background: var(--crisp-radio-day-dish-bg);
+  border: 1px solid var(--crisp-radio-day-dish-border);
+  box-shadow: inset 1px 3px 8px rgba(0, 0, 0, 0.28), inset -1px -1px 2px rgba(255, 255, 255, 0.7), 0 1px 3px rgba(0, 0, 0, 0.08);
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+}
+body.theme-dark .crisp-radio-dial-bezel {
+  background: var(--crisp-radio-night-dish-bg);
+  border: 1px solid var(--crisp-radio-night-dish-border);
+  box-shadow: inset 1px 2px 7px rgba(0, 0, 0, 0.65), inset -1px -1px 2px rgba(255, 255, 255, 0.05);
+}
+.crisp-radio-dial-bezel:active {
+  cursor: grabbing;
+}
+
+/* 3A. Placement Ticks & Directional Icons */
+.crisp-radio-dial-ticks {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.crisp-radio-dial-tick {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 24px;
+  height: 24px;
+  margin-top: -12px;
+  margin-left: -12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: rotate(var(--tick-angle)) translateY(-53px) rotate(calc(-1 * var(--tick-angle)));
+  pointer-events: auto;
+  cursor: pointer;
+  border-radius: 50%;
+  transition: transform 0.15s ease, background-color 0.15s ease;
+}
+.crisp-radio-dial-tick__icon {
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+  color: #2e3137;
+  opacity: 0.75;
+  transition: transform 0.15s ease, color 0.15s ease, opacity 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+body.theme-dark .crisp-radio-dial-tick__icon {
+  color: var(--crisp-radio-night-text-muted);
+}
+.crisp-radio-dial-tick:hover .crisp-radio-dial-tick__icon {
+  opacity: 1;
+  color: #111827;
+  transform: scale(1.22);
+}
+body.theme-dark .crisp-radio-dial-tick:hover .crisp-radio-dial-tick__icon {
+  color: var(--crisp-radio-night-text-primary);
+}
+.crisp-radio-dial-tick.is-selected {
+  background: rgba(0, 0, 0, 0.12);
+}
+body.theme-dark .crisp-radio-dial-tick.is-selected {
+  background: rgba(255, 255, 255, 0.14);
+}
+.crisp-radio-dial-tick.is-selected .crisp-radio-dial-tick__icon {
+  opacity: 1;
+  color: #1d4ed8;
+  font-weight: 900;
+  transform: scale(1.25);
+}
+body.theme-dark .crisp-radio-dial-tick.is-selected .crisp-radio-dial-tick__icon {
+  color: #60a5fa;
+}
+
+/* 3C. Color Dial Pips (Pure Beads, Clean Rim) */
+.crisp-radio-dial-colors {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.crisp-radio-dial-color-pip {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 20px;
+  height: 20px;
+  margin-top: -10px;
+  margin-left: -10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: rotate(var(--pip-angle)) translateY(-53px) rotate(calc(-1 * var(--pip-angle)));
+  pointer-events: auto;
+  cursor: pointer;
+  border-radius: 50%;
+  transition: transform 0.15s ease;
+}
+.crisp-radio-dial-color-pip:hover {
+  transform: rotate(var(--pip-angle)) translateY(-53px) rotate(calc(-1 * var(--pip-angle))) scale(1.25);
+}
+.crisp-radio-dial-color-pip__core {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.5);
+  border: 1.5px solid rgba(255, 255, 255, 0.85);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+body.theme-dark .crisp-radio-dial-color-pip__core {
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.7), inset 0 1px 1px rgba(255, 255, 255, 0.35);
+  border: 1.5px solid rgba(255, 255, 255, 0.4);
+}
+.crisp-radio-dial-color-pip:hover .crisp-radio-dial-color-pip__core {
+  box-shadow: 0 0 7px currentColor;
+}
+.crisp-radio-dial-color-pip.is-selected {
+  transform: rotate(var(--pip-angle)) translateY(-53px) rotate(calc(-1 * var(--pip-angle))) scale(1.28);
+}
+.crisp-radio-dial-color-pip.is-selected .crisp-radio-dial-color-pip__core {
+  border: 2px solid #2563eb;
+  box-shadow: 0 0 8px rgba(37, 99, 235, 0.75);
+}
+body.theme-dark .crisp-radio-dial-color-pip.is-selected .crisp-radio-dial-color-pip__core {
+  border: 2px solid #60a5fa;
+  box-shadow: 0 0 9px rgba(96, 165, 250, 0.85);
+}
+
+/* Knob Center Wheel (Rotating) */
+.crisp-radio-knob {
+  width: 78px;
+  height: 78px;
+  border-radius: 50%;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--crisp-radio-day-knob-face);
+  border: 1px solid var(--crisp-radio-day-knob-border);
+  box-shadow: var(--crisp-radio-day-knob-shadow);
+  z-index: 10;
+}
+body.theme-dark .crisp-radio-knob {
+  background: var(--crisp-radio-night-knob-face);
+  border: 1px solid var(--crisp-radio-night-knob-border);
+  box-shadow: var(--crisp-radio-night-knob-shadow);
+}
+
+.crisp-radio-knob__face {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Needle Pointer */
+.crisp-radio-knob__needle {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  transition: transform 0.22s cubic-bezier(0.2, 0.9, 0.3, 1), opacity 0.15s ease;
+}
+.crisp-radio-knob__needle-line {
+  position: absolute;
+  top: 5px;
+  left: 50%;
+  width: 3px;
+  height: 25px;
+  margin-left: -1.5px;
+  border-radius: 2px;
+  background: var(--crisp-radio-day-needle);
+  box-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+}
+body.theme-dark .crisp-radio-knob__needle-line {
+  background: var(--crisp-radio-night-needle);
+  box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.65);
+}
+.crisp-radio-knob__needle-tip {
+  position: absolute;
+  top: 2.5px;
+  left: 50%;
+  width: 5px;
+  height: 5px;
+  margin-left: -2.5px;
+  border-radius: 50%;
+  background: var(--crisp-radio-day-needle-tip);
+}
+body.theme-dark .crisp-radio-knob__needle-tip {
+  background: var(--crisp-radio-night-needle-tip);
+  box-shadow: 0 0 5px var(--crisp-radio-night-needle-tip);
+}
+
+.crisp-radio-knob__center-cap {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #f2f0eb 0%, #b8b5ad 70%, #8a877f 100%);
+  border: 1px solid #8e8b83;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+}
+body.theme-dark .crisp-radio-knob__center-cap {
+  background: radial-gradient(circle at 35% 35%, #424750 0%, #292d33 70%, #1c1f23 100%);
+  border: 1px solid #3d4249;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+}
+
+/* Center Custom Color Hub (In Color Knob Center) */
+.crisp-radio-knob__custom-hub {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: #bab6ae;
+  border: 1px solid #8c8880;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  cursor: pointer;
+  pointer-events: auto;
+  transition: transform 0.15s ease, color 0.15s ease, opacity 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  z-index: 20;
+}
+body.theme-dark .crisp-radio-knob__custom-hub {
+  background: #24272c;
+  border: 1px solid #383e46;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+.crisp-radio-knob__custom-hub:hover {
+  transform: scale(1.08);
+  border-color: #2563eb;
+}
+.crisp-radio-knob__custom-hub.is-selected {
+  border-color: #2563eb;
+  box-shadow: 0 0 8px rgba(37, 99, 235, 0.5), inset 0 1px 0 #ffffff;
+}
+body.theme-dark .crisp-radio-knob__custom-hub.is-selected {
+  border-color: #60a5fa;
+  box-shadow: 0 0 10px rgba(96, 165, 250, 0.6);
+}
+.crisp-radio-knob__custom-jewel {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1.5px solid #ffffff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+.crisp-radio-knob__custom-label {
+  font-size: 8px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
+  font-weight: 800;
+  color: var(--crisp-radio-day-text-primary);
+  line-height: 1;
+}
+body.theme-dark .crisp-radio-knob__custom-label {
+  color: var(--crisp-radio-night-text-primary);
+}
+.crisp-radio-hidden-color-picker {
+  display: none !important;
+}
+
+/* 3B. Center Pill Switch: Highlight Target */
+.crisp-radio-pill-switch {
+  width: 66px;
+  height: 110px;
+  border-radius: 33px;
+  background: var(--crisp-radio-day-dish-bg);
+  border: 1px solid var(--crisp-radio-day-dish-border);
+  box-shadow: inset 1px 2px 5px rgba(0, 0, 0, 0.22), inset -1px -1px 2px rgba(255, 255, 255, 0.6);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 4px;
+  cursor: pointer;
+  transition: transform 0.15s ease, color 0.15s ease, opacity 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  user-select: none;
+}
+body.theme-dark .crisp-radio-pill-switch {
+  background: var(--crisp-radio-night-dish-bg);
+  border: 1px solid var(--crisp-radio-night-dish-border);
+  box-shadow: inset 1px 2px 5px rgba(0, 0, 0, 0.65), inset -1px -1px 2px rgba(255, 255, 255, 0.05);
+}
+.crisp-radio-pill-switch:hover {
+  transform: scale(1.03);
+}
+.crisp-radio-pill-switch:active {
+  transform: translateY(1.5px);
+}
+.crisp-radio-pill-switch__icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--crisp-radio-day-knob-face);
+  border: 1px solid var(--crisp-radio-day-knob-border);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15), inset 0 1px 0 #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.15s ease, color 0.15s ease, opacity 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+body.theme-dark .crisp-radio-pill-switch__icon {
+  background: #25282d;
+  border: 1px solid #3a3f47;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+.crisp-radio-pill-switch__led {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #9ca3af;
+  transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.crisp-radio-pill-switch.is-active .crisp-radio-pill-switch__led {
+  background: #22c55e;
+  box-shadow: 0 0 7px #22c55e;
+}
+.crisp-radio-pill-switch.is-active .crisp-radio-pill-switch__icon {
+  border-color: #86efac;
+}
+.crisp-radio-pill-switch__text {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+.crisp-radio-pill-switch__label {
+  font-size: 9.5px;
+  font-weight: 800;
+  color: var(--crisp-radio-day-text-primary);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
+}
+body.theme-dark .crisp-radio-pill-switch__label {
+  color: var(--crisp-radio-night-text-primary);
+}
+.crisp-radio-pill-switch__sub {
+  font-size: 8px;
+  font-weight: 600;
+  color: var(--crisp-radio-day-text-muted);
+}
+body.theme-dark .crisp-radio-pill-switch__sub {
+  color: var(--crisp-radio-night-text-muted);
+}
+
+/* 4. Reading Appearance Section: 4 Chunky Tactile Push Keys */
+.crisp-radio-appearance-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 2px;
+}
+.crisp-radio-appearance-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 2px;
+}
+.crisp-radio-appearance-title {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--crisp-radio-day-text-muted);
+  letter-spacing: 0.02em;
+}
+body.theme-dark .crisp-radio-appearance-title {
+  color: var(--crisp-radio-night-text-muted);
+}
+
+.crisp-radio-blocks {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+.crisp-radio-block {
+  background: var(--crisp-radio-day-block-bg);
+  border: 1px solid var(--crisp-radio-day-block-border);
+  border-radius: 12px;
+  padding: 8px 10px 7px;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.08), inset 0 1px 0 #ffffff;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  cursor: pointer;
+  transition: transform 0.15s ease, color 0.15s ease, opacity 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  user-select: none;
+}
+body.theme-dark .crisp-radio-block {
+  background: var(--crisp-radio-night-block-bg);
+  border: 1px solid var(--crisp-radio-night-block-border);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+.crisp-radio-block:hover {
+  transform: translateY(-1px);
+  border-color: #2563eb;
+}
+body.theme-dark .crisp-radio-block:hover {
+  border-color: #60a5fa;
+}
+.crisp-radio-block:active {
+  transform: translateY(1.5px);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1), inset 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+.crisp-radio-block__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.crisp-radio-block__led {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #f59e0b;
+  box-shadow: 0 0 4px #f59e0b;
+}
+.crisp-radio-block__tag {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--crisp-radio-day-text-muted);
+  letter-spacing: 0.03em;
+}
+body.theme-dark .crisp-radio-block__tag {
+  color: var(--crisp-radio-night-text-muted);
+}
+.crisp-radio-block__val {
+  font-size: 12.5px;
+  font-weight: 750;
+  color: var(--crisp-radio-day-block-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: center;
+}
+body.theme-dark .crisp-radio-block__val {
+  color: var(--crisp-radio-night-block-text);
+}
+
+/* 5. Bottom Action Buttons: Split Footer Layout */
+.crisp-radio-footer {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  padding-top: 6px !important;
+}
+.crisp-radio-footer__left {
+  display: flex !important;
+  align-items: center !important;
+}
+.crisp-radio-footer__right {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+}
+
+/* Appearance Button on Left */
+.crisp-radio-appearance-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  padding: 8px 14px !important;
+  border-radius: 12px !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  cursor: pointer !important;
+  user-select: none !important;
+  transition: transform 0.15s ease, background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease !important;
+  background: #ceccc5 !important;
+  border: 1px solid #aaa8a0 !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08), inset 0 1px 0 #ffffff !important;
+  color: #373a3f !important;
+}
+.crisp-radio-appearance-btn:hover {
+  background: #c3c1b9 !important;
+  color: #1a1c1e !important;
+  transform: translateY(-0.5px);
+}
+.crisp-radio-appearance-btn:active {
+  transform: translateY(1px) !important;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.18) !important;
+}
+body.theme-dark .crisp-radio-appearance-btn {
+  background: #282b30 !important;
+  border: 1px solid #3a3e45 !important;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+  color: #cdd3dc !important;
+}
+body.theme-dark .crisp-radio-appearance-btn:hover {
+  background: #31353c !important;
+  color: #ffffff !important;
+}
+.crisp-radio-appearance-btn__icon {
+  font-size: 11.5px;
+  opacity: 0.8;
+}
+
+/* Cancel & Submit on Right */
+.crisp-radio-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  padding: 9px 18px !important;
+  border-radius: 12px !important;
+  font-size: 13.5px !important;
+  font-weight: 700 !important;
+  cursor: pointer !important;
+  user-select: none !important;
+  transition: transform 0.12s ease, background-color 0.12s ease, color 0.12s ease, box-shadow 0.12s ease !important;
+}
+.crisp-radio-btn:active {
+  transform: translateY(1.5px) !important;
+}
+
+.crisp-radio-btn--cancel {
+  background: #dcdad5 !important;
+  border: 1px solid #bbb9b2 !important;
+  color: #4a4d52 !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08), inset 0 1px 0 #ffffff !important;
+}
+body.theme-dark .crisp-radio-btn--cancel {
+  background: #282b30 !important;
+  border: 1px solid #3a3e45 !important;
+  color: #a2a7b0 !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+}
+.crisp-radio-btn--cancel:hover {
+  background: #d2d0ca !important;
+  color: #25272a !important;
+}
+body.theme-dark .crisp-radio-btn--cancel:hover {
+  background: #31353c !important;
+  color: #e4e7ec !important;
+}
+
+.crisp-radio-btn--submit {
+  background: #2b332d !important;
+  border: 1px solid #1e2420 !important;
+  color: #ffffff !important;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+}
+body.theme-dark .crisp-radio-btn--submit {
+  background: #1f3426 !important;
+  border: 1px solid #142419 !important;
+  color: #d1fae5 !important;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
+}
+.crisp-radio-btn--submit:hover {
+  background: #343e37 !important;
+  transform: translateY(-0.5px);
+}
+body.theme-dark .crisp-radio-btn--submit:hover {
+  background: #264230 !important;
+  color: #ffffff !important;
+}
+.crisp-radio-btn__led {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 5px #22c55e;
+}
+.crisp-radio-btn__key {
+  font-size: 10.5px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
+  opacity: 0.65;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.1);
+}
+.crisp-radio-btn--submit .crisp-radio-btn__key {
+  background: rgba(255, 255, 255, 0.18);
+}
