@@ -3756,3 +3756,90 @@ body.theme-dark .crisp-radio-btn--submit:hover {
 .crisp-radio-btn--submit .crisp-radio-btn__key {
   background: rgba(255, 255, 255, 0.18);
 }
+
+/* Radio dialog: isolate controls from legacy swatch/button styles. */
+.crisp-radio-dialog .crisp-radio-dial-tick,
+.crisp-radio-dialog .crisp-radio-dial-color-pip {
+  padding: 0; min-width: 0; min-height: 0;
+  border: 1px solid transparent; background: transparent;
+  box-shadow: none; border-radius: 50%;
+}
+.crisp-radio-dialog .crisp-radio-dial-color-pip {
+  width: 26px; height: 26px; margin: -13px 0 0 -13px;
+}
+.crisp-radio-dialog .crisp-radio-dial-color-pip__core {
+  flex: 0 0 14px; width: 14px; height: 14px;
+}
+.crisp-radio-dialog .crisp-radio-dial-color-pip.is-selected .crisp-radio-dial-color-pip__core {
+  border-color: #fff;
+  box-shadow: 0 0 0 2px var(--crisp-radio-day-dish-bg), 0 0 0 3px var(--crisp-radio-day-text-primary);
+}
+body.theme-dark .crisp-radio-dialog .crisp-radio-dial-color-pip.is-selected .crisp-radio-dial-color-pip__core {
+  box-shadow: 0 0 0 2px var(--crisp-radio-night-dish-bg), 0 0 0 3px var(--crisp-radio-night-text-primary);
+}
+.crisp-radio-dialog .crisp-radio-dial-tick.is-selected {
+  background: rgba(37, 99, 235, 0.12); border-color: rgba(37, 99, 235, 0.4);
+}
+.crisp-radio-dialog :is(button, [tabindex="0"]):focus-visible {
+  outline: 2px solid var(--interactive-accent); outline-offset: 3px;
+}
+body .crisp-radio-dialog .crisp-radio-screen__textarea {
+  border-radius: 7px; font-weight: 500 !important; user-select: text;
+}
+body .crisp-radio-dialog .crisp-radio-screen__textarea:focus {
+  outline: 1px solid var(--crisp-radio-day-lcd-border) !important;
+  outline-offset: 2px; box-shadow: none !important; background-color: transparent !important;
+}
+body.theme-dark .crisp-radio-dialog .crisp-radio-screen__textarea:focus { outline-color: #72977a !important; }
+body.theme-dark .crisp-radio-dialog { --crisp-radio-night-lcd-faint: #8fa995; }
+.crisp-radio-dialog .crisp-radio-block {
+  display: flex; flex-direction: column; height: auto; min-width: 0;
+  white-space: normal; text-align: start; font: inherit;
+}
+.crisp-radio-dialog .crisp-radio-block__val { font-size: 13px; overflow-wrap: anywhere; }
+.crisp-radio-dialog .crisp-radio-panel { min-width: 0; }
+.crisp-radio-dialog .crisp-radio-panel__header { gap: 6px; flex-wrap: wrap; }
+.crisp-radio-dialog .crisp-radio-panel__badge { white-space: nowrap; }
+body .modal.crisp-radio-dialog { max-height: calc(100dvh - 32px) !important; }
+.crisp-radio-dialog .modal-content.crisp-radio-modal { overflow-y: auto; overflow-x: hidden; min-height: 0; margin: 0; }
+.crisp-radio-modal > * { flex-shrink: 0; }
+.crisp-radio-dialog .modal-header { display: none; }
+.crisp-radio-dialog .modal-header-button { top: 12px; right: 12px; }
+.crisp-radio-dialog .crisp-radio-footer { flex-wrap: wrap; gap: 12px; }
+.crisp-radio-dialog .crisp-radio-footer__right { margin-left: auto; }
+@media (max-width: 480px) {
+  .crisp-radio-dialog .crisp-radio-modal { padding: 18px 14px !important; }
+  .crisp-radio-dialog .crisp-radio-controls { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 8px; }
+  .crisp-radio-dialog .crisp-radio-panel--color { grid-column: 2; grid-row: 1; }
+  .crisp-radio-dialog .crisp-radio-pill-switch {
+    grid-column: 1 / -1; grid-row: 2; justify-self: center;
+    width: auto; height: 44px; flex-direction: row; gap: 12px; padding: 6px 16px;
+  }
+  .crisp-radio-dialog .crisp-radio-blocks { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .crisp-radio-dialog .crisp-radio-footer__right { width: 100%; justify-content: flex-end; }
+  .crisp-radio-dialog .crisp-radio-screen { padding: 10px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .crisp-radio-dialog *, .crisp-radio-dialog { transition: none !important; animation: none !important; }
+}
+/* Match host theme specificity without affecting other dialogs. */
+body .modal.crisp-ann-dialog.crisp-radio-dialog .crisp-radio-screen__textarea {
+  background: transparent !important;
+  color: var(--crisp-radio-day-lcd-text) !important;
+}
+body.theme-dark .modal.crisp-ann-dialog.crisp-radio-dialog .crisp-radio-screen__textarea {
+  color: var(--crisp-radio-night-lcd-text) !important;
+}
+body .modal.crisp-ann-dialog.crisp-radio-dialog button.crisp-radio-block {
+  background: var(--crisp-radio-day-block-bg) !important;
+  border: 1px solid var(--crisp-radio-day-block-border) !important;
+  box-shadow: 0 3px 6px rgba(0,0,0,.08), inset 0 1px 0 rgba(255,255,255,.8) !important;
+  align-items: stretch;
+}
+body.theme-dark .modal.crisp-ann-dialog.crisp-radio-dialog button.crisp-radio-block {
+  background: var(--crisp-radio-night-block-bg) !important;
+  border-color: var(--crisp-radio-night-block-border) !important;
+  box-shadow: 0 3px 6px rgba(0,0,0,.2), inset 0 1px 0 rgba(255,255,255,.06) !important;
+}
+.crisp-radio-dialog .crisp-radio-block__top { width: 100%; }
+.crisp-radio-dialog .crisp-radio-block__val { text-align: center; }
