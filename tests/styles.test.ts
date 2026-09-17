@@ -188,3 +188,11 @@ describe("plugin styles", () => {
     expect(finePointerBlock).toContain("transform: scale(1.04)");
   });
 });
+
+// Rotary position lives in transform, so legacy scale-only hover must never match it.
+it("excludes rotary ticks from legacy compass hover transforms", () => {
+  const finePointerBlock = styles.match(
+    /@media \(hover: hover\) and \(pointer: fine\) \{([\s\S]*?)\n\}/,
+  )?.[1] ?? "";
+  expect(finePointerBlock).toContain(":not(.crisp-ann-modal__compass-btn--center, .crisp-radio-dial-tick):hover");
+});

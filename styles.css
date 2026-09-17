@@ -924,7 +924,7 @@ body[data-crisp-ann-recall="true"] .crisp-ann__label.is-revealed {
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .crisp-ann-modal__compass-btn:not(.crisp-ann-modal__compass-btn--center):hover {
+  .crisp-ann-modal__compass-btn:not(.crisp-ann-modal__compass-btn--center, .crisp-radio-dial-tick):hover {
     transform: scale(1.04);
   }
 }
