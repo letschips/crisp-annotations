@@ -19,7 +19,7 @@ import {
 
 export const OUTLINE_VIEW_TYPE = "crisp-annotations-outline-view";
 
-export type OutlineAnnotationAction = "edit" | "toggle-mark" | "copy" | "remove";
+export type OutlineAnnotationAction = "edit" | "toggle-mark" | "copy" | "pulse" | "remove";
 
 export interface OutlineAnnotationContext {
   annotation: AnnotationMatch;
@@ -72,6 +72,7 @@ export class CrispAnnotationsOutlineView extends ItemView {
     settingsProvider: () => CrispAnnotationsSettings,
     private readonly onVaultScopeRequested?: () => void,
     private readonly onAnnotationAction?: OutlineAnnotationActionHandler,
+    private readonly canSendToPulse?: () => boolean,
   ) {
     super(leaf);
     this.settingsProvider = settingsProvider;
@@ -394,7 +395,7 @@ export class CrispAnnotationsOutlineView extends ItemView {
         filePath,
         sourceLeaf: vaultEntry ? null : this.sourceLeaf,
       };
-      for (const action of [
+      const actionList: { value: OutlineAnnotationAction; label: string; icon: string }[] = [
         { value: "edit", label: "编辑标注", icon: "pencil" },
         {
           value: "toggle-mark",
@@ -402,8 +403,13 @@ export class CrispAnnotationsOutlineView extends ItemView {
           icon: "highlighter",
         },
         { value: "copy", label: "复制标注内容", icon: "copy" },
-        { value: "remove", label: "删除标注", icon: "trash-2" },
-      ] as const) {
+      ];
+      // Crisp Pulse 可用时才出现；没装 Pulse 时标注中心和原来一样
+      if (filePath && this.canSendToPulse?.()) {
+        actionList.push({ value: "pulse", label: "记为想法（Crisp Pulse）", icon: "feather" });
+      }
+      actionList.push({ value: "remove", label: "删除标注", icon: "trash-2" });
+      for (const action of actionList) {
         const button = actions.ownerDocument.createElement("button");
         button.type = "button";
         button.className = `crisp-ann-outline-item__action crisp-ann-outline-item__action--${action.value}`;

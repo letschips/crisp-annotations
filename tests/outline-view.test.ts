@@ -461,6 +461,34 @@ describe("CrispAnnotationsOutlineView", () => {
     ).toBeNull();
   });
 
+  it("offers 记为想法 only when Crisp Pulse is available", () => {
+    const sourceLeaf = { view: { file: { path: "Current.md" } } };
+    const labels = (canSend: boolean) => {
+      const container = createObsidianEl();
+      const onAction = vi.fn();
+      const view = new CrispAnnotationsOutlineView(
+        makeDummyLeaf(),
+        makeDummySettings,
+        undefined,
+        onAction,
+        () => canSend,
+      );
+      Object.defineProperty(view, "containerEl", { value: container });
+      view.refresh('==重要=={ann note="关键注释"}', sourceLeaf as unknown as WorkspaceLeaf);
+      const buttons = Array.from(container.querySelectorAll<HTMLButtonElement>(
+        ".crisp-ann-outline-item__action",
+      ));
+      const pulse = buttons.find((button) => button.classList.contains("crisp-ann-outline-item__action--pulse"));
+      pulse?.click();
+      return { labels: buttons.map((button) => button.getAttribute("aria-label")), calls: onAction.mock.calls };
+    };
+    expect(labels(false).labels).toEqual(["编辑标注", "关闭原文高亮", "复制标注内容", "删除标注"]);
+    const withPulse = labels(true);
+    expect(withPulse.labels).toEqual(["编辑标注", "关闭原文高亮", "复制标注内容", "记为想法（Crisp Pulse）", "删除标注"]);
+    expect(withPulse.calls[0][0]).toBe("pulse");
+    expect(withPulse.calls[0][1]).toMatchObject({ filePath: "Current.md", annotation: { target: "重要" } });
+  });
+
   it("offers four compact actions without triggering item navigation", () => {
     const container = createObsidianEl();
     const onAction = vi.fn();

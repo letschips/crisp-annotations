@@ -42,6 +42,7 @@ import {
   type OutlineAnnotationContext,
 } from "./outline-view";
 import { verifyLicenseCode } from "./license";
+import { findPulseMemoApi, sendAnnotationToPulse } from "./pulse-memo";
 import {
   renderAnnotationsInElement,
   resetAnnotationMaskState,
@@ -224,6 +225,7 @@ export default class CrispAnnotationsPlugin extends Plugin {
         () => this.settings,
         () => { void this.ensureVaultIndex(); },
         (action, context) => { void this.handleOutlineAction(action, context); },
+        () => findPulseMemoApi(this.app) !== null,
       ),
     );
 
@@ -847,6 +849,10 @@ export default class CrispAnnotationsPlugin extends Plugin {
       }
       return;
     }
+    if (action === "pulse") {
+      await this.sendOutlineAnnotationToPulse(context);
+      return;
+    }
 
     const editorContext = await this.getOutlineEditorContext(
       context,
@@ -923,6 +929,37 @@ export default class CrispAnnotationsPlugin extends Plugin {
     });
     if (!changed) {
       new Notice("标注内容已经变化，请刷新标注中心后重试。");
+    }
+  }
+
+  /** 记为 Pulse 速记：按当前内容重新定位标注，再交给 Pulse 去重。 */
+  private async sendOutlineAnnotationToPulse(context: OutlineAnnotationContext): Promise<void> {
+    const file = context.filePath ? this.app.vault.getFileByPath(context.filePath) : null;
+    if (!file) {
+      new Notice("无法找到这条标注所在的文档。");
+      return;
+    }
+    try {
+      // 阅读模式下编辑器内容不跟随外部修改（如同步），只在编辑模式下用编辑器里未保存的内容
+      const editorContext = await this.getOutlineEditorContext(context, false);
+      const editing = (editorContext?.leaf.view as { getMode?: () => string } | undefined)?.getMode?.() === "source";
+      const source = editing && editorContext ? editorContext.editor.getValue() : await this.app.vault.read(file);
+      const result = await sendAnnotationToPulse(this.app, {
+        path: file.path,
+        source,
+        reference: context.annotation,
+        headings: this.app.metadataCache.getFileCache(file)?.headings ?? null,
+      });
+      if (result.status === "created") {
+        new Notice("已记为 Pulse 速记。");
+        return;
+      }
+      new Notice(result.changed
+        ? "这条标注已记过；标注之后改过，原速记没有更新。"
+        : "这条标注已记过，已打开原速记。");
+      await findPulseMemoApi(this.app)?.revealMemo(result.memo);
+    } catch (error) {
+      new Notice(`记为想法失败：${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
