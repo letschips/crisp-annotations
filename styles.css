@@ -1354,7 +1354,9 @@ body.is-mobile .crisp-ann-margin-connectors {
   display: none;
 }
 
-@media (max-width: 700px) {
+/* Print shares the narrow layout: a PDF page has no gutter beside the text
+   column, so side notes at the end of a line would be clipped at the paper edge. */
+@media (max-width: 700px), print {
   .crisp-ann {
     --crisp-ann-label-max-width: min(150px, 52vw);
   }
@@ -1393,7 +1395,8 @@ body.is-mobile .crisp-ann-margin-connectors {
     transform: translateX(-40%) rotate(var(--crisp-ann-rotate));
   }
 
-  .crisp-ann-block:has(.crisp-ann--left, .crisp-ann--right) {
+  .crisp-ann-block:has(.crisp-ann--left, .crisp-ann--right),
+  :is(h1, h2, h3, h4, h5, h6):has(.crisp-ann--left, .crisp-ann--right) {
     padding-bottom: 3.15rem;
   }
 }
@@ -1991,10 +1994,6 @@ body.is-mobile .crisp-ann-margin-connectors {
     word-break: break-word;
   }
 
-  .crisp-ann::before {
-    display: none !important;
-  }
-
   .crisp-ann--margin::before {
     display: none !important;
   }
@@ -2016,12 +2015,6 @@ body.is-mobile .crisp-ann-margin-connectors {
     display: inline;
   }
 
-  .crisp-ann-block--space-top,
-  .crisp-ann-block--space-bottom {
-    padding-top: 0.5rem !important;
-    padding-bottom: 0.5rem !important;
-  }
-
   .crisp-ann-margin-sizer {
     overflow: visible !important;
   }
@@ -2033,6 +2026,13 @@ body.is-mobile .crisp-ann-margin-connectors {
   }
 
   .crisp-ann--margin {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Inline labels are positioned off their block; a break inside it strands
+     the label and half its arrow on the next page. */
+  .crisp-ann-block {
     break-inside: avoid;
     page-break-inside: avoid;
   }

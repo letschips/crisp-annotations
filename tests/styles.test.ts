@@ -81,7 +81,7 @@ describe("plugin styles", () => {
     // A blanket rule here would pin every note below its target, whatever place was chosen.
     expect(styles).not.toMatch(/body\.is-mobile \.crisp-ann::before/);
     expect(styles).not.toMatch(/body\.is-mobile \.crisp-ann > \.crisp-ann__label/);
-    const narrow = styles.match(/@media \(max-width: 700px\) \{[\s\S]*?\n\}/)?.[0] ?? "";
+    const narrow = styles.match(/@media \(max-width: 700px\)[^{]*\{[\s\S]*?\n\}/)?.[0] ?? "";
     expect(narrow).not.toMatch(/\n {2}\.crisp-ann::before/);
     expect(narrow).not.toMatch(/\n {2}\.crisp-ann > \.crisp-ann__label/);
     // Only pure left/right fold under their own side, using the diagonal arrows.
@@ -187,6 +187,28 @@ describe("plugin styles", () => {
     const printBlock = styles.match(/@media print\s*\{[\s\S]*?\n\}/)?.[0] ?? "";
     expect(printBlock).toContain("data-crisp-ann-recall");
     expect(printBlock).toContain("color: var(--crisp-ann-color) !important");
+  });
+
+  it("keeps inline arrows and label spacing in print and PDF export", () => {
+    const printBlock = styles.match(/@media print\s*\{[\s\S]*?\n\}/)?.[0] ?? "";
+    // Inline labels are absolutely positioned; without the arrow and the
+    // reserved block space they land on neighbouring lines in the PDF.
+    expect(printBlock).not.toMatch(/\n {2}\.crisp-ann::before\s*\{/);
+    expect(printBlock).not.toContain(".crisp-ann-block--space-top");
+    expect(printBlock).not.toContain(".crisp-ann-block--space-bottom");
+    // A page break inside the block strands the label on the next page.
+    expect(printBlock).toMatch(/\n {2}\.crisp-ann-block\s*\{\s*break-inside: avoid;/);
+  });
+
+  it("folds pure left/right notes under their target in print and PDF export", () => {
+    // A PDF page has no gutter beside the text column, so a note placed right of a
+    // line-end target would be clipped at the paper edge. Print shares the narrow rules.
+    const narrow = styles.match(/@media \(max-width: 700px\)[^{]*\{[\s\S]*?\n\}/)?.[0] ?? "";
+    expect(narrow).toMatch(/^@media \(max-width: 700px\), print \{/);
+    expect(narrow).toContain(".crisp-ann--right > .crisp-ann__label");
+    expect(narrow).toContain(".crisp-ann--left > .crisp-ann__label");
+    // Headings never get .crisp-ann-block, so a folded note would sit on the next paragraph.
+    expect(narrow).toMatch(/:is\(h1, h2, h3, h4, h5, h6\):has\(\.crisp-ann--left, \.crisp-ann--right\)/);
   });
 
   it("keeps choice motion explicit and fine-pointer gated", () => {
