@@ -2364,7 +2364,8 @@ body.is-mobile .crisp-ann-margin-connectors {
   transform: translateY(0);
 }
 
-.crisp-ann-outline-item__action {
+/* 带上外层类和 button：盖过 Obsidian 的 button:not(.clickable-icon) 灰底和描边阴影 */
+.crisp-ann-outline-item__actions button.crisp-ann-outline-item__action {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -2381,14 +2382,14 @@ body.is-mobile .crisp-ann-margin-connectors {
   color: var(--text-muted);
 }
 
-.crisp-ann-outline-item__action:hover,
-.crisp-ann-outline-item__action:focus-visible {
+.crisp-ann-outline-item__actions button.crisp-ann-outline-item__action:hover,
+.crisp-ann-outline-item__actions button.crisp-ann-outline-item__action:focus-visible {
   background: var(--background-modifier-hover);
   color: var(--text-normal);
 }
 
-.crisp-ann-outline-item__action--remove:hover,
-.crisp-ann-outline-item__action--remove:focus-visible {
+.crisp-ann-outline-item__actions button.crisp-ann-outline-item__action--remove:hover,
+.crisp-ann-outline-item__actions button.crisp-ann-outline-item__action--remove:focus-visible {
   background: color-mix(in srgb, var(--text-error) 12%, transparent);
   color: var(--text-error);
 }
@@ -2413,6 +2414,49 @@ body.is-mobile .crisp-ann-margin-connectors {
 
   .crisp-ann-outline-item__meta {
     display: none;
+  }
+
+  /* 触屏：按钮常驻时挪到文字下面单独一行，不再挤占原文宽度；按钮放大到手指好点的尺寸 */
+  .crisp-ann-outline-item {
+    flex-wrap: wrap;
+    row-gap: 2px;
+  }
+
+  .crisp-ann-outline-item__actions {
+    flex: 1 0 100%;
+    justify-content: flex-end;
+    gap: 4px;
+  }
+
+  .crisp-ann-outline-item__actions button.crisp-ann-outline-item__action {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    min-height: 36px;
+    padding: 9px;
+    color: var(--text-faint);
+  }
+
+  .crisp-ann-outline-item__action svg {
+    width: 17px;
+    height: 17px;
+  }
+
+  /* 没有悬停提示可看全文，原文和批注多给几行再省略 */
+  .crisp-ann-outline-item__target,
+  .crisp-ann-outline-item__note {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .crisp-ann-outline-item__target {
+    -webkit-line-clamp: 2;
+  }
+
+  .crisp-ann-outline-item__note {
+    -webkit-line-clamp: 3;
   }
 }
 
