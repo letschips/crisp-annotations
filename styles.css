@@ -3913,3 +3913,40 @@ body.theme-dark .modal.crisp-ann-dialog.crisp-radio-dialog button.crisp-radio-bl
 }
 .crisp-radio-dialog .crisp-radio-block__top { width: 100%; }
 .crisp-radio-dialog .crisp-radio-block__val { text-align: center; }
+
+/* Brand header (logo, name, slogan) shared by all Crisp settings pages */
+.crisp-brand-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.crisp-brand-header h2 {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 650;
+}
+
+.crisp-brand-logo {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.crisp-brand-logo svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.crisp-brand-slogan {
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  margin-top: 0;
+  margin-bottom: 1.25rem;
+  line-height: 1.45;
+}

@@ -5,6 +5,7 @@ import {
   Plugin,
   PluginSettingTab,
   Setting,
+  setIcon,
   type TextComponent,
   type TFile,
   type WorkspaceLeaf,
@@ -25,7 +26,7 @@ import {
 } from "./annotation-syntax";
 import { createAnnotationEditorExtension } from "./editor-extension";
 import { addAnnotationContextMenuItem } from "./editor-menu";
-import { registerIcons } from "./icons";
+import { CRISP_ANNOTATION_ICON_NAME, registerIcons } from "./icons";
 import {
   applyArrowAppearanceSettings,
   clearArrowAppearanceSettings,
@@ -1209,6 +1210,10 @@ class CrispAnnotationsSettingTab extends PluginSettingTab {
 
   display(): void {
     this.containerEl.empty();
+    const brandHeader = this.containerEl.createDiv({ cls: "crisp-brand-header" });
+    setIcon(brandHeader.createDiv({ cls: "crisp-brand-logo" }), CRISP_ANNOTATION_ICON_NAME);
+    brandHeader.createEl("h2", { text: "Crisp Annotations" });
+    this.containerEl.createEl("p", { text: "重点划下来，想法写旁边", cls: "crisp-brand-slogan" });
     let customColorPicker: ColorComponent | null = null;
     let customColorInput: TextComponent | null = null;
     let customFontSetting: Setting | null = null;
