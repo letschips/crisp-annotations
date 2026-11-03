@@ -12,6 +12,7 @@ import {
 } from "obsidian";
 import { preserveUnreadableData } from "./data-safety";
 import { AnnotationModal } from "./annotation-modal";
+import { SimpleAnnotationModal } from "./annotation-sheet-modal";
 import { QuickAnnotationModal } from "./quick-annotation-modal";
 import {
   ANNOTATION_COLORS,
@@ -63,6 +64,7 @@ import {
   type AnnotationLayout,
   type ArrowStrokeStyle,
   type ArrowStyle,
+  type DialogStyle,
   type ColorTheme,
   type CrispAnnotationsSettings,
 } from "./settings";
@@ -656,7 +658,8 @@ export default class CrispAnnotationsPlugin extends Plugin {
     const trimmedTo = editor.offsetToPos(editor.posToOffset(to) - trailingTrim);
 
     const canWrite = this.annotationWriteGuard(editor, source);
-    new AnnotationModal(
+    const Dialog = this.settings.dialogStyle === "simple" ? SimpleAnnotationModal : AnnotationModal;
+    new Dialog(
       this.app,
       initial,
       Boolean(existing),
@@ -671,6 +674,7 @@ export default class CrispAnnotationsPlugin extends Plugin {
         editor.replaceRange(serializeAnnotation(target, spec), trimmedFrom, trimmedTo);
         void this.saveSettings();
       },
+      target,
     ).open();
   }
 
@@ -1583,6 +1587,17 @@ class CrispAnnotationsSettingTab extends PluginSettingTab {
         .setValue(this.plugin.settings.editorPreview)
         .onChange(async (value) => {
           this.plugin.settings.editorPreview = value;
+          await this.plugin.saveSettings();
+        }));
+
+    new Setting(editingBody)
+      .setName("标注面板")
+      .addDropdown((dropdown) => dropdown
+        .addOption("radio", "收音机")
+        .addOption("simple", "简约")
+        .setValue(this.plugin.settings.dialogStyle)
+        .onChange(async (value) => {
+          this.plugin.settings.dialogStyle = value as DialogStyle;
           await this.plugin.saveSettings();
         }));
 

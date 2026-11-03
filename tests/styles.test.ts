@@ -112,6 +112,16 @@ describe("plugin styles", () => {
     expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
   });
 
+  it("gives the simple annotation sheet an opaque surface", () => {
+    const dialogRule = styles.match(
+      /body \.modal\.crisp-ann-sheet-dialog\s*\{[^}]*\}/s,
+    )?.[0] ?? "";
+    expect(dialogRule).toContain("background: var(--background-primary) !important");
+    expect(dialogRule).toContain("--btw-glass-dialog: var(--background-primary)");
+    expect(styles).toContain(".crisp-ann-sheet__stage");
+    expect(styles).toContain(".crisp-ann-sheet__swatch");
+  });
+
   it("provides print / PDF export media query with collapsed margins", () => {
     expect(styles).toContain("@media print");
     expect(styles).toContain(".crisp-ann-margin-item");

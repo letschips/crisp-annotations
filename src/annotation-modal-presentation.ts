@@ -50,3 +50,14 @@ export function buildAnnotationModalPresentation(
     ].join(" · "),
   };
 }
+
+// Shortens an annotation target by visual width; wide (CJK) characters count double.
+export function previewTarget(target: string, maxUnits = 24): string {
+  const chars = [...target.replace(/\s+/g, " ").trim()];
+  let units = 0;
+  for (const [index, char] of chars.entries()) {
+    units += /[\u1100-\uffff]/.test(char) ? 2 : 1;
+    if (units > maxUnits) return chars.slice(0, index).join("").trimEnd() + "…";
+  }
+  return chars.join("");
+}

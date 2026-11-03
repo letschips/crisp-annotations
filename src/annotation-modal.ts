@@ -9,7 +9,8 @@ import {
   type AnnotationSpec,
 } from "./annotation-syntax";
 import type { CrispAnnotationsSettings } from "./settings";
-import { buildAnnotationModalPresentation } from "./annotation-modal-presentation";
+import { buildAnnotationModalPresentation, previewTarget } from "./annotation-modal-presentation";
+import { DEFAULT_SETTINGS } from "./settings";
 import {
   ANNOTATION_LAYOUT_LABELS,
   ARROW_STROKE_LABELS,
@@ -90,6 +91,43 @@ function bindRotaryDrag(container: HTMLElement, onAngle: (deg: number) => void):
   return () => { endDrag(); container.removeEventListener("pointerdown", onPointerDown); };
 }
 
+// Notes past this length start to crowd the page; the meter turns to the warning tone.
+const NOTE_METER_SEGMENTS = 24;
+const NOTE_METER_FULL = 60;
+const NOTE_METER_WARN = 0.75;
+
+export function noteMeterLevel(length: number): number {
+  return Math.min(NOTE_METER_SEGMENTS, Math.ceil(length / NOTE_METER_FULL * NOTE_METER_SEGMENTS));
+}
+
+// Keeps a needle's rotation cumulative so it always turns the short way round.
+export function nextNeedleAngle(current: number, target: number): number {
+  const delta = (((target - current) % 360) + 540) % 360 - 180;
+  return current + delta;
+}
+
+// Arrow keys and the wheel step a dial one detent clockwise (+1) or counter-clockwise (-1).
+function dialStep(ev: KeyboardEvent): number {
+  if (ev.key === "ArrowRight" || ev.key === "ArrowDown") return 1;
+  if (ev.key === "ArrowLeft" || ev.key === "ArrowUp") return -1;
+  return 0;
+}
+
+function bindDialWheel(container: HTMLElement, onStep: (step: number) => void): () => void {
+  let pending = 0;
+  const onWheel = (ev: WheelEvent) => {
+    ev.preventDefault();
+    pending += Math.abs(ev.deltaY) >= Math.abs(ev.deltaX) ? ev.deltaY : ev.deltaX;
+    while (Math.abs(pending) >= 40) {
+      const step = Math.sign(pending);
+      pending -= step * 40;
+      onStep(step);
+    }
+  };
+  container.addEventListener("wheel", onWheel, { passive: false });
+  return () => container.removeEventListener("wheel", onWheel);
+}
+
 export class AnnotationModal extends Modal {
   private draft: AnnotationSpec;
   private customColor: string;
@@ -104,6 +142,7 @@ export class AnnotationModal extends Modal {
     private readonly settings: CrispAnnotationsSettings,
     private readonly onOpenSettings: () => void,
     private readonly onSubmit: (spec: AnnotationSpec) => boolean | void,
+    private readonly target = "",
   ) {
     super(app);
     this.draft = { ...initial };
@@ -139,7 +178,11 @@ export class AnnotationModal extends Modal {
       cls: "crisp-radio-screen__rec" + (this.draft.note ? " is-active" : ""),
       text: this.draft.note ? "● 录入中" : "● 等待输入",
     });
-    sTop.createSpan({ cls: "crisp-radio-screen__mode", text: "MARKDOWN · NOTE" });
+    const modeEl = sTop.createSpan({
+      cls: "crisp-radio-screen__mode",
+      text: this.target ? `「${previewTarget(this.target, 22)}」` : "MARKDOWN · NOTE",
+    });
+    if (this.target) modeEl.title = this.target;
 
     const sBody = screen.createDiv({ cls: "crisp-radio-screen__body" });
     const textComp = new TextAreaComponent(sBody);
@@ -155,16 +198,22 @@ export class AnnotationModal extends Modal {
       cls: "crisp-radio-screen__meta",
       text: "CHARS · " + (this.draft.note || "").length,
     });
-    sBottom.createSpan({
-      cls: "crisp-radio-screen__scale",
-      text: "········································································",
-    });
+    const meter = sBottom.createSpan({ cls: "crisp-radio-screen__scale", attr: { "aria-hidden": "true" } });
+    const meterSegs = Array.from({ length: NOTE_METER_SEGMENTS }, (_, index) => meter.createSpan({
+      cls: "crisp-radio-screen__seg" + (index >= NOTE_METER_SEGMENTS * NOTE_METER_WARN ? " is-warn" : ""),
+    }));
+    const updateMeter = (length: number) => {
+      const level = noteMeterLevel(length);
+      meterSegs.forEach((seg, index) => seg.classList.toggle("is-lit", index < level));
+    };
+    updateMeter((this.draft.note || "").length);
 
     textComp.inputEl.addEventListener("input", () => {
       const val = textComp.inputEl.value;
       this.draft.note = val;
       this.setError("");
       charEl.textContent = "CHARS · " + val.length;
+      updateMeter(val.length);
       const hasText = val.trim().length > 0;
       recDot.textContent = hasText ? "● 录入中" : "● 等待输入";
       recDot.classList.toggle("is-active", hasText);
@@ -219,25 +268,42 @@ export class AnnotationModal extends Modal {
     placeNeedle.createDiv({ cls: "crisp-radio-knob__needle-tip" });
     placeFace.createDiv({ cls: "crisp-radio-knob__center-cap" });
 
+    let placeAngle = (PLACE_DEFS.find((p) => p.id === this.draft.place) || PLACE_DEFS[2]).angle;
     const updatePlace = (newPlace: AnnotationPlace) => {
       this.draft.place = newPlace;
       const pDef = PLACE_DEFS.find((p) => p.id === newPlace) || PLACE_DEFS[2];
-      placeNeedle.style.transform = `rotate(${pDef.angle}deg)`;
+      placeAngle = nextNeedleAngle(placeAngle, pDef.angle);
+      placeNeedle.style.transform = `rotate(${placeAngle}deg)`;
       placeBadge.textContent = `POS: ${pDef.label}`;
       for (const [id, el] of placeTickEls) {
         const isSel = id === newPlace;
         el.classList.toggle("is-selected", isSel);
         el.setAttribute("aria-pressed", String(isSel));
+        el.tabIndex = isSel ? 0 : -1;
       }
+    };
+    const stepPlace = (step: number, focus: boolean) => {
+      const index = PLACE_DEFS.findIndex((p) => p.id === this.draft.place);
+      const next = PLACE_DEFS[(index + step + PLACE_DEFS.length) % PLACE_DEFS.length];
+      updatePlace(next.id);
+      if (focus) placeTickEls.get(next.id)?.focus();
     };
     updatePlace(this.draft.place);
 
     for (const p of PLACE_DEFS) {
-      placeTickEls.get(p.id)?.addEventListener("click", (ev) => {
+      const tick = placeTickEls.get(p.id);
+      tick?.addEventListener("click", (ev) => {
         ev.stopPropagation();
         updatePlace(p.id);
       });
+      tick?.addEventListener("keydown", (ev) => {
+        const step = dialStep(ev);
+        if (!step) return;
+        ev.preventDefault();
+        stepPlace(step, true);
+      });
     }
+    this.cleanups.push(bindDialWheel(placeDial, (step) => stepPlace(step, false)));
 
     const unbindPlaceDrag = bindRotaryDrag(placeDial, (deg) => {
       const sector = Math.round(deg / 45) % 8;
@@ -328,40 +394,62 @@ export class AnnotationModal extends Modal {
       attr: { type: "color", value: curCustomHex },
     });
 
+    let colorAngle = (COLOR_DEFS.find((c) => c.id === this.draft.color) || COLOR_DEFS[0]).angle;
     const updateColor = (newColor: AnnotationColor) => {
       this.draft.color = newColor;
       if (newColor === "custom") {
         colorNeedle.style.opacity = "0.25";
-        colorNeedle.style.transform = "rotate(0deg)";
+        colorAngle = nextNeedleAngle(colorAngle, 0);
+        colorNeedle.style.transform = `rotate(${colorAngle}deg)`;
         customHub.classList.add("is-selected");
         const hexVal = this.customColor;
         customJewel.style.backgroundColor = hexVal;
         colorBadge.textContent = "COL: " + hexVal.toUpperCase();
-        for (const [, el] of colorDotEls) {
+        for (const [id, el] of colorDotEls) {
           el.classList.remove("is-selected");
           el.setAttribute("aria-pressed", "false");
+          el.tabIndex = id === COLOR_DEFS[0].id ? 0 : -1;
         }
       } else {
         colorNeedle.style.opacity = "1";
         customHub.classList.remove("is-selected");
         const cDef = COLOR_DEFS.find((c) => c.id === newColor) || COLOR_DEFS[1];
-        colorNeedle.style.transform = `rotate(${cDef.angle}deg)`;
+        colorAngle = nextNeedleAngle(colorAngle, cDef.angle);
+        colorNeedle.style.transform = `rotate(${colorAngle}deg)`;
         colorBadge.textContent = "COL: " + cDef.label;
         for (const [id, el] of colorDotEls) {
           const isSel = id === newColor;
           el.classList.toggle("is-selected", isSel);
           el.setAttribute("aria-pressed", String(isSel));
+          el.tabIndex = isSel ? 0 : -1;
         }
       }
     };
     updateColor(this.draft.color);
 
+    const stepColor = (step: number, focus: boolean) => {
+      const index = COLOR_DEFS.findIndex((c) => c.id === this.draft.color);
+      // From the custom hub, the first step lands on the top pip or its neighbour.
+      const next = COLOR_DEFS[index < 0
+        ? (step > 0 ? 0 : COLOR_DEFS.length - 1)
+        : (index + step + COLOR_DEFS.length) % COLOR_DEFS.length];
+      updateColor(next.id);
+      if (focus) colorDotEls.get(next.id)?.focus();
+    };
     for (const c of COLOR_DEFS) {
-      colorDotEls.get(c.id)?.addEventListener("click", (ev) => {
+      const pip = colorDotEls.get(c.id);
+      pip?.addEventListener("click", (ev) => {
         ev.stopPropagation();
         updateColor(c.id);
       });
+      pip?.addEventListener("keydown", (ev) => {
+        const step = dialStep(ev);
+        if (!step) return;
+        ev.preventDefault();
+        stepColor(step, true);
+      });
     }
+    this.cleanups.push(bindDialWheel(colorDial, (step) => stepColor(step, false)));
 
     const unbindColorDrag = bindRotaryDrag(colorDial, (deg) => {
       const sector = Math.round(deg / 45) % 8;
@@ -393,16 +481,17 @@ export class AnnotationModal extends Modal {
     appHeader.createSpan({ cls: "crisp-radio-appearance-title", text: "阅读外观" });
 
     const blocksContainer = appSection.createDiv({ cls: "crisp-radio-blocks" });
+    const s = this.settings;
     const blockData = () => [
-      { tag: "布局", val: ANNOTATION_LAYOUT_LABELS[this.settings.annotationLayout] || "内联" },
-      { tag: "箭头", val: ARROW_STYLE_LABELS[this.settings.arrowStyle] || "手绘" },
-      { tag: "线型", val: ARROW_STROKE_LABELS[this.settings.arrowStrokeStyle] || "实线" },
-      { tag: "字体", val: FONT_MODE_LABELS[this.settings.annotationFontMode] || "内置手写体" },
+      { tag: "布局", val: ANNOTATION_LAYOUT_LABELS[s.annotationLayout] || "内联", changed: s.annotationLayout !== DEFAULT_SETTINGS.annotationLayout },
+      { tag: "箭头", val: ARROW_STYLE_LABELS[s.arrowStyle] || "手绘", changed: s.arrowStyle !== DEFAULT_SETTINGS.arrowStyle },
+      { tag: "线型", val: ARROW_STROKE_LABELS[s.arrowStrokeStyle] || "实线", changed: s.arrowStrokeStyle !== DEFAULT_SETTINGS.arrowStrokeStyle },
+      { tag: "字体", val: FONT_MODE_LABELS[s.annotationFontMode] || "内置手写体", changed: s.annotationFontMode !== DEFAULT_SETTINGS.annotationFontMode },
     ];
 
     for (const b of blockData()) {
       const block = blocksContainer.createEl("button", {
-        cls: "crisp-radio-block",
+        cls: "crisp-radio-block" + (b.changed ? " is-changed" : ""),
         attr: { type: "button", title: "点击打开外观设置" },
       });
       const bTop = block.createDiv({ cls: "crisp-radio-block__top" });
@@ -415,8 +504,10 @@ export class AnnotationModal extends Modal {
     // Settings opens above this modal; refresh summaries when focus returns without rebuilding the draft.
     this.contentEl.addEventListener("focusin", () => {
       const data = blockData();
-      blocksContainer.querySelectorAll(".crisp-radio-block__val").forEach((el, index) => {
-        el.textContent = data[index]?.val || "";
+      blocksContainer.querySelectorAll(".crisp-radio-block").forEach((el, index) => {
+        el.classList.toggle("is-changed", Boolean(data[index]?.changed));
+        const val = el.querySelector(".crisp-radio-block__val");
+        if (val) val.textContent = data[index]?.val || "";
       });
       const current = buildAnnotationModalPresentation(this.settings);
       placeTitle.textContent = current.placementName;

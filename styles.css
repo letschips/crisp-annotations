@@ -3108,6 +3108,15 @@ body.theme-dark .crisp-radio-screen {
 body.theme-dark .crisp-radio-screen__top {
   color: var(--crisp-radio-night-lcd-faint);
 }
+.crisp-radio-screen__top {
+  gap: 16px;
+}
+.crisp-radio-screen__mode {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .crisp-radio-screen__rec {
   color: var(--crisp-radio-day-lcd-faint);
   transition: color 0.15s ease;
@@ -3173,12 +3182,37 @@ body.theme-dark .crisp-radio-screen__bottom {
   flex-shrink: 0 !important;
   min-width: 80px;
 }
+/* Note-length meter: segments light up as the note grows; the last quarter warns. */
 .crisp-radio-screen__scale {
-  opacity: 0.6;
-  letter-spacing: 2px;
-  overflow: hidden;
-  white-space: nowrap;
+  display: flex;
   flex: 1 1 auto;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 3px;
+  overflow: hidden;
+}
+.crisp-radio-screen__seg {
+  flex: 0 1 4px;
+  height: 8px;
+  border-radius: 1px;
+  background: currentColor;
+  opacity: 0.22;
+  transition: opacity 0.12s ease, background-color 0.12s ease;
+}
+.crisp-radio-screen__seg.is-lit {
+  background: var(--crisp-radio-day-lcd-text);
+  opacity: 0.85;
+}
+.crisp-radio-screen__seg.is-warn.is-lit {
+  background: var(--crisp-radio-day-needle-tip);
+}
+body.theme-dark .crisp-radio-screen__seg.is-lit {
+  background: var(--crisp-radio-night-lcd-text);
+  box-shadow: 0 0 4px color-mix(in srgb, var(--crisp-radio-night-lcd-text) 50%, transparent);
+}
+body.theme-dark .crisp-radio-screen__seg.is-warn.is-lit {
+  background: #f0a35e;
+  box-shadow: 0 0 4px rgba(240, 163, 94, 0.5);
 }
 
 .crisp-radio-error {
@@ -3316,12 +3350,12 @@ body.theme-dark .crisp-radio-dial-tick.is-selected {
 }
 .crisp-radio-dial-tick.is-selected .crisp-radio-dial-tick__icon {
   opacity: 1;
-  color: #1d4ed8;
+  color: var(--crisp-radio-day-needle-tip);
   font-weight: 900;
   transform: scale(1.25);
 }
 body.theme-dark .crisp-radio-dial-tick.is-selected .crisp-radio-dial-tick__icon {
-  color: #60a5fa;
+  color: var(--crisp-radio-night-needle-tip);
 }
 
 /* 3C. Color Dial Pips (Pure Beads, Clean Rim) */
@@ -3662,10 +3696,18 @@ body.theme-dark .crisp-radio-block:hover {
   align-items: center;
   justify-content: space-between;
 }
+/* The LED lights only when that appearance setting differs from the default. */
 .crisp-radio-block__led {
   width: 5px;
   height: 5px;
   border-radius: 50%;
+  background: color-mix(in srgb, var(--crisp-radio-day-text-muted) 35%, transparent);
+  transition: background-color 0.15s ease, box-shadow 0.15s ease;
+}
+body.theme-dark .crisp-radio-block__led {
+  background: color-mix(in srgb, var(--crisp-radio-night-text-muted) 35%, transparent);
+}
+.crisp-radio-block.is-changed .crisp-radio-block__led {
   background: #f59e0b;
   box-shadow: 0 0 4px #f59e0b;
 }
@@ -3848,7 +3890,12 @@ body.theme-dark .crisp-radio-dialog .crisp-radio-dial-color-pip.is-selected .cri
   box-shadow: 0 0 0 2px var(--crisp-radio-night-dish-bg), 0 0 0 3px var(--crisp-radio-night-text-primary);
 }
 .crisp-radio-dialog .crisp-radio-dial-tick.is-selected {
-  background: rgba(37, 99, 235, 0.12); border-color: rgba(37, 99, 235, 0.4);
+  background: color-mix(in srgb, var(--crisp-radio-day-needle-tip) 12%, transparent);
+  border-color: color-mix(in srgb, var(--crisp-radio-day-needle-tip) 45%, transparent);
+}
+body.theme-dark .crisp-radio-dialog .crisp-radio-dial-tick.is-selected {
+  background: color-mix(in srgb, var(--crisp-radio-night-needle-tip) 14%, transparent);
+  border-color: color-mix(in srgb, var(--crisp-radio-night-needle-tip) 45%, transparent);
 }
 .crisp-radio-dialog :is(button, [tabindex="0"]):focus-visible {
   outline: 2px solid var(--interactive-accent); outline-offset: 3px;
@@ -3949,4 +3996,339 @@ body.theme-dark .modal.crisp-ann-dialog.crisp-radio-dialog button.crisp-radio-bl
   margin-top: 0;
   margin-bottom: 1.25rem;
   line-height: 1.45;
+}
+
+/* --------------------------------------------------------------------------
+ * Annotation sheet: live preview stage, note, color row, footer.
+ * The stage renders real .crisp-ann markup, so it follows every global
+ * appearance setting (arrow, stroke, font, color theme) without duplication.
+ * -------------------------------------------------------------------------- */
+
+/* Opaque over document text; set Baseline's token so its glass rule cannot win. */
+body .modal.crisp-ann-sheet-dialog {
+  --crisp-dialog-surface: var(--background-primary);
+  --btw-glass-dialog: var(--background-primary);
+  width: min(520px, calc(100vw - 32px));
+  background: var(--background-primary) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.crisp-ann-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.crisp-ann-sheet__stage {
+  position: relative;
+  height: 180px;
+  overflow: hidden;
+  border-radius: 12px;
+  background-color: var(--background-secondary);
+  box-shadow: inset 0 0 0 1px var(--background-modifier-border);
+  cursor: pointer;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.crisp-ann-sheet__stage.is-dragging {
+  cursor: grabbing;
+}
+
+.crisp-ann-sheet__paper {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 24px;
+  color: var(--text-normal);
+  font-family: var(--font-text);
+  font-size: 16px;
+  line-height: 1.6;
+  pointer-events: none;
+  transition: transform 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* Side notes need room: slide the target away from the side the note sits on. */
+.crisp-ann-sheet__stage[data-place$="right"] .crisp-ann-sheet__paper {
+  transform: translateX(-20%);
+}
+
+.crisp-ann-sheet__stage[data-place$="left"] .crisp-ann-sheet__paper {
+  transform: translateX(20%);
+}
+
+.crisp-ann-sheet__paper .crisp-ann__target {
+  white-space: nowrap;
+}
+
+.crisp-ann-sheet__paper .crisp-ann__label.is-placeholder {
+  opacity: 0.4;
+}
+
+.crisp-ann-sheet__spot {
+  position: absolute;
+  top: var(--spot-y);
+  left: var(--spot-x);
+  z-index: 5;
+  width: 32px;
+  height: 32px;
+  margin: -16px 0 0 -16px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent !important;
+  box-shadow: none !important;
+  cursor: pointer;
+}
+
+.crisp-ann-sheet__spot::after {
+  position: absolute;
+  inset: 12px;
+  border: 1.5px solid var(--text-faint);
+  border-radius: 50%;
+  content: "";
+  opacity: 0.7;
+  transition: transform 160ms ease, opacity 160ms ease, background-color 160ms ease;
+}
+
+.crisp-ann-sheet__spot[aria-pressed="true"]::after {
+  opacity: 0;
+}
+
+.crisp-ann-sheet__spot:focus-visible {
+  outline: 2px solid var(--interactive-accent);
+  outline-offset: -4px;
+}
+
+.crisp-ann-sheet__spot[aria-pressed="true"]:focus-visible::after {
+  opacity: 0.6;
+}
+
+.crisp-ann-sheet__note {
+  width: 100%;
+  min-height: 64px;
+  max-height: 168px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: var(--font-ui-medium);
+  line-height: 1.5;
+  resize: none;
+}
+
+.crisp-ann-sheet__error {
+  display: none;
+  margin-top: -6px;
+  color: var(--text-error);
+  font-size: var(--font-ui-smaller);
+}
+
+.crisp-ann-sheet__error.is-visible {
+  display: block;
+}
+
+.crisp-ann-sheet__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+}
+
+.crisp-ann-sheet__colors {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  margin-left: -4px;
+}
+
+.crisp-ann-sheet__swatch {
+  position: relative;
+  display: grid;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent !important;
+  box-shadow: none !important;
+  place-items: center;
+  cursor: pointer;
+}
+
+.crisp-ann-sheet__swatch-fill {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--crisp-ann-color);
+  transition: transform 160ms ease, box-shadow 160ms ease;
+}
+
+.crisp-ann-sheet__swatch-fill.crisp-ann--rainbow {
+  background: conic-gradient(#ef4444, #f59e0b, #10b981, #3b82f6, #8b5cf6, #ef4444);
+}
+
+/* The custom swatch reads as "pick your own" until chosen. */
+.crisp-ann-sheet__swatch[data-color="custom"] .crisp-ann-sheet__swatch-fill {
+  outline: 1.5px dashed var(--text-faint);
+  outline-offset: 2px;
+}
+
+.crisp-ann-sheet__swatch[aria-pressed="true"] .crisp-ann-sheet__swatch-fill {
+  outline: 0;
+  box-shadow:
+    0 0 0 2.5px var(--background-primary),
+    0 0 0 4px var(--crisp-ann-color);
+}
+
+.crisp-ann-sheet__swatch[data-color="rainbow"][aria-pressed="true"] .crisp-ann-sheet__swatch-fill {
+  box-shadow:
+    0 0 0 2.5px var(--background-primary),
+    0 0 0 4px var(--text-muted);
+}
+
+.crisp-ann-sheet__swatch:focus-visible {
+  outline: 2px solid var(--interactive-accent);
+  outline-offset: -2px;
+}
+
+.crisp-ann-sheet__picker {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.crisp-ann-sheet__mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  border-radius: 6px;
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+  cursor: pointer;
+  user-select: none;
+}
+
+.crisp-ann-sheet__mark:focus-visible {
+  outline: 2px solid var(--interactive-accent);
+  outline-offset: 3px;
+}
+
+.crisp-ann-sheet__mark .checkbox-container {
+  flex-shrink: 0;
+  pointer-events: none;
+}
+
+.crisp-ann-sheet__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 4px;
+  padding-top: 14px;
+  border-top: 1px solid var(--background-modifier-border);
+}
+
+.crisp-ann-sheet__appearance {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  height: auto;
+  margin-left: -8px;
+  padding: 4px 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: var(--text-faint);
+  font-size: var(--font-ui-smaller);
+  cursor: pointer;
+}
+
+.crisp-ann-sheet__appearance-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.crisp-ann-sheet__appearance-icon svg {
+  width: 14px;
+  height: 14px;
+}
+
+.crisp-ann-sheet__appearance-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.crisp-ann-sheet__actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: 8px;
+}
+
+.crisp-ann-sheet__kbd {
+  margin-left: 8px;
+  padding: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+  color: inherit;
+  font-family: inherit;
+  font-size: 0.85em;
+  opacity: 0.65;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .crisp-ann-sheet__spot:hover::after {
+    transform: scale(1.4);
+    background-color: var(--text-faint);
+    opacity: 1;
+  }
+
+  .crisp-ann-sheet__spot[aria-pressed="true"]:hover::after {
+    opacity: 0;
+  }
+
+  .crisp-ann-sheet__swatch:hover .crisp-ann-sheet__swatch-fill {
+    transform: scale(1.12);
+  }
+
+  .crisp-ann-sheet__mark:hover {
+    color: var(--text-normal);
+  }
+
+  .crisp-ann-sheet__appearance:hover {
+    background: var(--background-modifier-hover) !important;
+    color: var(--text-muted);
+  }
+}
+
+body.is-mobile .crisp-ann-sheet__kbd {
+  display: none;
+}
+
+@media (max-width: 480px) {
+  .crisp-ann-sheet__stage {
+    height: 156px;
+  }
+
+  .crisp-ann-sheet__appearance-text {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .crisp-ann-sheet__paper,
+  .crisp-ann-sheet__spot::after,
+  .crisp-ann-sheet__swatch-fill {
+    transition: none;
+  }
 }

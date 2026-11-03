@@ -28,6 +28,13 @@ export const ARROW_STROKE_STYLES = [
 ] as const;
 
 export type ArrowStyle = typeof ARROW_STYLES[number];
+
+export const DIALOG_STYLES = [
+  "radio",
+  "simple",
+] as const;
+
+export type DialogStyle = typeof DIALOG_STYLES[number];
 export type ArrowStrokeStyle = typeof ARROW_STROKE_STYLES[number];
 
 export const ANNOTATION_LAYOUTS = [
@@ -70,6 +77,7 @@ export interface CrispAnnotationsSettings {
   annotationLayout: AnnotationLayout;
   marginNoteWidth: number;
   rememberLastChoice: boolean;
+  dialogStyle: DialogStyle;
   lastUsedPlace: AnnotationPlace;
   lastUsedColor: AnnotationColor;
   lastUsedMark: boolean;
@@ -92,6 +100,7 @@ export const DEFAULT_SETTINGS: CrispAnnotationsSettings = {
   annotationLayout: "inline",
   marginNoteWidth: 180,
   rememberLastChoice: true,
+  dialogStyle: "radio",
   lastUsedPlace: "bottom",
   lastUsedColor: "amber",
   lastUsedMark: true,
@@ -166,6 +175,9 @@ export function normalizeSettings(value: unknown): CrispAnnotationsSettings {
     rememberLastChoice: typeof candidate.rememberLastChoice === "boolean"
       ? candidate.rememberLastChoice
       : DEFAULT_SETTINGS.rememberLastChoice,
+    dialogStyle: DIALOG_STYLES.includes(candidate.dialogStyle as DialogStyle)
+      ? candidate.dialogStyle as DialogStyle
+      : DEFAULT_SETTINGS.dialogStyle,
     lastUsedPlace: ANNOTATION_PLACES.includes(candidate.lastUsedPlace as AnnotationPlace)
       ? candidate.lastUsedPlace as AnnotationPlace
       : DEFAULT_SETTINGS.lastUsedPlace,

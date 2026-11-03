@@ -1,6 +1,6 @@
 import type { App } from "obsidian";
 import { describe, expect, it, vi } from "vitest";
-import { AnnotationModal } from "../src/annotation-modal";
+import { AnnotationModal, nextNeedleAngle, noteMeterLevel } from "../src/annotation-modal";
 import { buildAnnotationModalPresentation } from "../src/annotation-modal-presentation";
 import type { AnnotationSpec } from "../src/annotation-syntax";
 import { DEFAULT_SETTINGS } from "../src/settings";
@@ -172,4 +172,60 @@ it('leaves global settings untouched when the document rejects the write', () =>
   expect(settings.lastUsedPlace).toBe('bottom');
   expect(settings.customColor).toBe('#111111');
   modal.onClose();
+});
+
+describe("radio polish", () => {
+  function open(settings = { ...DEFAULT_SETTINGS }, target = "学习标注") {
+    const modal = new AnnotationModal({} as App, { note: "", place: "top-left", color: "neutral", mark: true }, false, settings, vi.fn(), vi.fn(), target);
+    modal.onOpen();
+    return { modal, q: <T extends HTMLElement>(sel: string) => modal.contentEl.querySelector<T>(sel)! };
+  }
+
+  it("shows the annotated text on the LCD", () => {
+    const { modal, q } = open();
+    expect(q(".crisp-radio-screen__mode").textContent).toBe("「学习标注」");
+    modal.onClose();
+  });
+
+  it("lights the note meter as the note grows", () => {
+    expect(noteMeterLevel(0)).toBe(0);
+    expect(noteMeterLevel(1)).toBe(1);
+    expect(noteMeterLevel(30)).toBe(12);
+    expect(noteMeterLevel(500)).toBe(24);
+    const { modal } = open();
+    const note = (modal as unknown as { noteInput: { inputEl: HTMLTextAreaElement } }).noteInput.inputEl;
+    note.value = "x".repeat(30); note.dispatchEvent(new Event("input"));
+    expect(modal.contentEl.querySelectorAll(".crisp-radio-screen__seg.is-lit")).toHaveLength(12);
+    modal.onClose();
+  });
+
+  it("turns needles the short way round", () => {
+    expect(nextNeedleAngle(315, 0)).toBe(360);
+    expect(nextNeedleAngle(360, 270)).toBe(270);
+    expect(nextNeedleAngle(0, 180)).toBe(-180);
+    const { modal, q } = open();
+    q('.crisp-radio-dial-tick[data-id="top"]').click();
+    expect(q(".crisp-radio-panel--place .crisp-radio-knob__needle").style.transform).toBe("rotate(360deg)");
+    modal.onClose();
+  });
+
+  it("rotates each dial with arrow keys and keeps one tab stop per dial", () => {
+    const { modal, q } = open();
+    const ticks = [...modal.contentEl.querySelectorAll<HTMLButtonElement>(".crisp-radio-dial-tick")];
+    expect(ticks.filter((t) => t.tabIndex === 0)).toHaveLength(1);
+    q('.crisp-radio-dial-tick[data-id="top-left"]').dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight" }));
+    expect(q('.crisp-radio-dial-tick[data-id="top"]').getAttribute("aria-pressed")).toBe("true");
+    q('[data-color="neutral"]').dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowLeft" }));
+    expect(q('[data-color="rainbow"]').getAttribute("aria-pressed")).toBe("true");
+    const pips = [...modal.contentEl.querySelectorAll<HTMLButtonElement>(".crisp-radio-dial-color-pip")];
+    expect(pips.filter((p) => p.tabIndex === 0)).toHaveLength(1);
+    modal.onClose();
+  });
+
+  it("lights an appearance LED only for settings changed from the default", () => {
+    const { modal } = open({ ...DEFAULT_SETTINGS, arrowStyle: "spiral" });
+    const blocks = [...modal.contentEl.querySelectorAll(".crisp-radio-block")];
+    expect(blocks.map((b) => b.classList.contains("is-changed"))).toEqual([false, true, false, false]);
+    modal.onClose();
+  });
 });
