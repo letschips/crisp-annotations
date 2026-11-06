@@ -10,6 +10,7 @@ import {
   type AnnotationMatch,
 } from "./annotation-syntax";
 import type { CrispAnnotationsSettings } from "./settings";
+import { annotationsEntitled } from "./entitlement";
 import { COLOR_LABELS, PLACE_LABELS } from "./constants";
 import {
   filterVaultAnnotationEntries,
@@ -66,6 +67,8 @@ export class CrispAnnotationsOutlineView extends ItemView {
   private activeAnnotation: { filePath: string; from: number } | null = null;
   private renderedScope: "current" | "vault" | null = null;
   private readonly settingsProvider: () => CrispAnnotationsSettings;
+  private entitlementOwner: object | null = null;
+  private openActivation: (() => void) | null = null;
 
   constructor(
     leaf: WorkspaceLeaf,
@@ -76,6 +79,17 @@ export class CrispAnnotationsOutlineView extends ItemView {
   ) {
     super(leaf);
     this.settingsProvider = settingsProvider;
+  }
+
+  /** Content shows only while this owner holds a verified license (see entitlement.ts). */
+  bindEntitlement(owner: object, openActivation?: () => void): this {
+    this.entitlementOwner = owner;
+    this.openActivation = openActivation ?? null;
+    return this;
+  }
+
+  rerender(): void {
+    this.render();
   }
 
   getViewType(): string {
@@ -165,11 +179,25 @@ export class CrispAnnotationsOutlineView extends ItemView {
 
   private render(): void {
     const container = this.containerEl;
+    if (!annotationsEntitled(this.entitlementOwner)) {
+      this.renderedScope = null;
+      this.renderLocked(container);
+      return;
+    }
     // Refreshes arrive on every edit; keep the reader's place unless the scope changed.
     const scrollTop = this.renderedScope === this.outlineScope ? container.scrollTop : 0;
     this.renderedScope = this.outlineScope;
     this.renderContent(container);
     container.scrollTop = scrollTop;
+  }
+
+  private renderLocked(container: HTMLElement): void {
+    container.empty();
+    const card = container.createDiv({ cls: "crisp-ann-outline-locked" });
+    card.createEl("h4", { text: "Crisp Annotations 未激活" });
+    card.createEl("p", { text: "激活后显示标注和标注中心。标注写在笔记原文里，未激活时按普通文本显示。" });
+    const button = card.createEl("button", { text: "输入授权码", cls: "mod-cta" });
+    button.addEventListener("click", () => this.openActivation?.());
   }
 
   private renderContent(container: HTMLElement): void {

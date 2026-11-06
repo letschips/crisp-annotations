@@ -40,7 +40,7 @@ function loadVerifier(scenario) {
   class EmptyBase {}
   const context = {
     module, exports: module.exports, atob, btoa, TextEncoder, TextDecoder, Buffer,
-    crypto: webcrypto, console: { debug() {}, log() {}, warn() {}, error() {} },
+    crypto: scenario.crypto ?? webcrypto, console: { debug() {}, log() {}, warn() {}, error() {} },
     setTimeout(fn, ms) {
       const timer = setTimeout(fn, ms === 2500 ? 10 : ms);
       timers.add(timer);
@@ -107,6 +107,27 @@ for (const kind of ['expired', 'bad signature']) {
       if (kind === 'bad signature') code = `${code.split('.')[0]}.${Buffer.alloc(64).toString('base64url')}`;
       assert.equal((await verifier.verify(code)).valid, false);
       assert.equal(verifier.calls(), 0);
+    } finally { verifier.cleanup(); }
+  });
+}
+
+// Only the plugins that capture WebCrypto at load (Annotations 1.10.0+) run these two.
+if (pluginId === 'crisp-annotations') {
+  test('replacing crypto.subtle.verify after load cannot pass a forged code', async () => {
+    const subtle = { importKey: webcrypto.subtle.importKey.bind(webcrypto.subtle), verify: webcrypto.subtle.verify.bind(webcrypto.subtle) };
+    const verifier = loadVerifier({ network: true, crypto: { subtle, getRandomValues: a => webcrypto.getRandomValues(a) } });
+    try {
+      subtle.verify = async () => true;
+      const forged = `${makeCode().split('.')[0]}.${Buffer.alloc(64, 7).toString('base64url')}`;
+      assert.equal((await verifier.verify(forged)).valid, false);
+      assert.equal((await verifier.verify(makeCode())).valid, true, 'a genuine code still works');
+    } finally { verifier.cleanup(); }
+  });
+  test('a verifier that accepts everything at load disables activation', async () => {
+    const subtle = { importKey: webcrypto.subtle.importKey.bind(webcrypto.subtle), verify: async () => true };
+    const verifier = loadVerifier({ network: true, crypto: { subtle, getRandomValues: a => webcrypto.getRandomValues(a) } });
+    try {
+      assert.equal((await verifier.verify(makeCode())).valid, false);
     } finally { verifier.cleanup(); }
   });
 }

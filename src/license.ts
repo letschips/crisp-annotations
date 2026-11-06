@@ -19,6 +19,35 @@ export interface LicenseVerifyResult {
 
 const WORKER_VERIFY_URL = "https://license.letschips.xyz/api/verify-device";
 
+type CapturedSubtle = Pick<SubtleCrypto, "importKey" | "verify">;
+
+// WebCrypto is taken once at load: replacing crypto.subtle later does not reach the license check.
+const SUBTLE: CapturedSubtle | null = (() => {
+  try {
+    const subtle = (globalThis.crypto ?? (typeof window !== "undefined" ? window.crypto : undefined))?.subtle;
+    return subtle ? Object.freeze({ importKey: subtle.importKey.bind(subtle), verify: subtle.verify.bind(subtle) }) : null;
+  } catch {
+    return null;
+  }
+})();
+
+let subtleCheck: Promise<boolean> | null = null;
+
+// A verifier that accepts an all-zero signature is not a real verifier; no license is trusted then.
+function subtleTrusted(): Promise<boolean> {
+  subtleCheck ??= (async () => {
+    if (!SUBTLE) return false;
+    try {
+      const key = await importEd25519PublicKey(CRISP_PUBLIC_KEY_PEM);
+      const accepted = await SUBTLE.verify("Ed25519", key, new Uint8Array(64), new TextEncoder().encode("crisp-annotations/self-test"));
+      return accepted === false;
+    } catch {
+      return false;
+    }
+  })();
+  return subtleCheck;
+}
+
 export const CRISP_PUBLIC_KEY_PEM = `-----BEGIN PUBLIC KEY-----
 MCowBQYDK2VwAyEAiz41HIDpD59SH3DjKnovUO+EEhTJXjvmiug/ev9t4ZQ=
 -----END PUBLIC KEY-----`;
@@ -54,7 +83,8 @@ export async function importEd25519PublicKey(pem: string): Promise<CryptoKey> {
     .replace(/\s/g, "");
   const der = base64UrlToUint8Array(pemContents);
   const derArrayBuffer = der.buffer.slice(der.byteOffset, der.byteOffset + der.byteLength) as ArrayBuffer;
-  return await window.crypto.subtle.importKey(
+  if (!SUBTLE) throw new Error("当前环境无法验证签名");
+  return await SUBTLE.importKey(
     "spki",
     derArrayBuffer,
     { name: "Ed25519" },
@@ -117,15 +147,18 @@ export async function verifyLicenseCode(
     const dataBytes = new TextEncoder().encode(payloadBase64);
     const dataArrayBuffer = dataBytes.buffer.slice(dataBytes.byteOffset, dataBytes.byteOffset + dataBytes.byteLength) as ArrayBuffer;
 
+    if (!SUBTLE || !(await subtleTrusted())) {
+      return { valid: false, reason: "当前环境无法验证签名" };
+    }
     const publicKey = await importEd25519PublicKey(CRISP_PUBLIC_KEY_PEM);
-    const isSignatureValid = await window.crypto.subtle.verify(
+    const isSignatureValid = await SUBTLE.verify(
       "Ed25519",
       publicKey,
       signatureArrayBuffer,
       dataArrayBuffer
     );
 
-    if (!isSignatureValid) {
+    if (isSignatureValid !== true) {
       return { valid: false, reason: "授权签名无效或伪造" };
     }
 

@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { applyEntitlement } from "../src/entitlement";
 import {
   COLOR_HEX,
   COLOR_ICONS,
@@ -113,6 +114,13 @@ function makeDummyLeaf(): any {
   };
 }
 
+// Views under test belong to a licensed owner unless a test says otherwise.
+const LICENSED_OWNER = {};
+applyEntitlement(LICENSED_OWNER, { valid: true, payload: { product: "Crisp Suite", licenseId: "TEST", userName: "Test", expiresAt: "2999-01-01T00:00:00Z", features: ["all"] } });
+function entitledView(...args: ConstructorParameters<typeof CrispAnnotationsOutlineView>): CrispAnnotationsOutlineView {
+  return new CrispAnnotationsOutlineView(...args).bindEntitlement(LICENSED_OWNER);
+}
+
 describe("CrispAnnotationsOutlineView", () => {
   it("exports the correct outline view type string", () => {
     expect(OUTLINE_VIEW_TYPE).toBe("crisp-annotations-outline-view");
@@ -179,7 +187,7 @@ describe("CrispAnnotationsOutlineView", () => {
   });
 
   it("constructs with correct view type, display text, and icon", () => {
-    const view = new CrispAnnotationsOutlineView(
+    const view = entitledView(
       makeDummyLeaf(),
       makeDummySettings,
     );
@@ -191,7 +199,7 @@ describe("CrispAnnotationsOutlineView", () => {
 
   it("lets readers switch between current-document and vault scopes", () => {
     const container = createObsidianEl();
-    const view = new CrispAnnotationsOutlineView(
+    const view = entitledView(
       makeDummyLeaf(),
       makeDummySettings,
     );
@@ -211,7 +219,7 @@ describe("CrispAnnotationsOutlineView", () => {
 
   it("keeps vault results separate from the current document", () => {
     const container = createObsidianEl();
-    const view = new CrispAnnotationsOutlineView(
+    const view = entitledView(
       makeDummyLeaf(),
       makeDummySettings,
     );
@@ -231,7 +239,7 @@ describe("CrispAnnotationsOutlineView", () => {
 
   it("shows an honest loading state while the vault index is being built", () => {
     const container = createObsidianEl();
-    const view = new CrispAnnotationsOutlineView(
+    const view = entitledView(
       makeDummyLeaf(),
       makeDummySettings,
     );
@@ -250,7 +258,7 @@ describe("CrispAnnotationsOutlineView", () => {
 
   it("groups vault annotations by file and shows their file paths", () => {
     const container = createObsidianEl();
-    const view = new CrispAnnotationsOutlineView(
+    const view = entitledView(
       makeDummyLeaf(),
       makeDummySettings,
     );
@@ -279,7 +287,7 @@ describe("CrispAnnotationsOutlineView", () => {
   it("filters vault annotations by search text and color", () => {
     const container = createObsidianEl();
     document.body.appendChild(container);
-    const view = new CrispAnnotationsOutlineView(
+    const view = entitledView(
       makeDummyLeaf(),
       makeDummySettings,
     );
@@ -327,7 +335,7 @@ describe("CrispAnnotationsOutlineView", () => {
   it("keeps the same search input through IME composition", () => {
     const container = createObsidianEl();
     document.body.appendChild(container);
-    const view = new CrispAnnotationsOutlineView(makeDummyLeaf(), makeDummySettings);
+    const view = entitledView(makeDummyLeaf(), makeDummySettings);
     Object.defineProperty(view, "containerEl", { value: container });
     view.refreshVault([
       vaultEntry("A.md", '==迁移=={ann note="复核"}'),
@@ -356,7 +364,7 @@ describe("CrispAnnotationsOutlineView", () => {
   it("keeps the scroll position when a refresh rebuilds the list", () => {
     const container = createObsidianEl();
     document.body.appendChild(container);
-    const view = new CrispAnnotationsOutlineView(makeDummyLeaf(), makeDummySettings);
+    const view = entitledView(makeDummyLeaf(), makeDummySettings);
     Object.defineProperty(view, "containerEl", { value: container });
     view.refresh('==A=={ann note="one"} ==B=={ann note="two"}');
     container.scrollTop = 120;
@@ -382,7 +390,7 @@ describe("CrispAnnotationsOutlineView", () => {
         },
       },
     };
-    const view = new CrispAnnotationsOutlineView(
+    const view = entitledView(
       makeDummyLeaf(),
       makeDummySettings,
     );
@@ -406,7 +414,7 @@ describe("CrispAnnotationsOutlineView", () => {
 
   it("renders annotation items from parsed source", () => {
     const container = createObsidianEl();
-    const view = new CrispAnnotationsOutlineView(
+    const view = entitledView(
       makeDummyLeaf(),
       makeDummySettings,
     );
@@ -430,7 +438,7 @@ describe("CrispAnnotationsOutlineView", () => {
 
   it("shows empty state when no annotations exist", () => {
     const container = createObsidianEl();
-    const view = new CrispAnnotationsOutlineView(
+    const view = entitledView(
       makeDummyLeaf(),
       makeDummySettings,
     );
@@ -445,7 +453,7 @@ describe("CrispAnnotationsOutlineView", () => {
 
   it("shows 'No highlight' badge for mark=off annotations", () => {
     const container = createObsidianEl();
-    const view = new CrispAnnotationsOutlineView(
+    const view = entitledView(
       makeDummyLeaf(),
       makeDummySettings,
     );
@@ -467,7 +475,7 @@ describe("CrispAnnotationsOutlineView", () => {
     const labels = (canSend: boolean) => {
       const container = createObsidianEl();
       const onAction = vi.fn();
-      const view = new CrispAnnotationsOutlineView(
+      const view = entitledView(
         makeDummyLeaf(),
         makeDummySettings,
         undefined,
@@ -511,7 +519,7 @@ describe("CrispAnnotationsOutlineView", () => {
       revealLeaf: () => { revealCount += 1; },
       setActiveLeaf: () => {},
     };
-    const view = new CrispAnnotationsOutlineView(
+    const view = entitledView(
       outlineLeaf,
       makeDummySettings,
       undefined,
@@ -579,7 +587,7 @@ describe("CrispAnnotationsOutlineView", () => {
       revealLeaf: vi.fn(),
       setActiveLeaf: vi.fn(),
     };
-    const view = new CrispAnnotationsOutlineView(
+    const view = entitledView(
       outlineLeaf,
       makeDummySettings,
     );
@@ -636,7 +644,7 @@ describe("CrispAnnotationsOutlineView", () => {
       },
       setActiveLeaf: () => {},
     };
-    const view = new CrispAnnotationsOutlineView(
+    const view = entitledView(
       outlineLeaf,
       makeDummySettings,
     );
@@ -684,7 +692,7 @@ describe("CrispAnnotationsOutlineView", () => {
         activationOptions = options;
       },
     };
-    const view = new CrispAnnotationsOutlineView(
+    const view = entitledView(
       outlineLeaf,
       makeDummySettings,
     );

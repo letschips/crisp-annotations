@@ -1,6 +1,13 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { App, WorkspaceLeaf } from "obsidian";
 import CrispAnnotationsPlugin from "../src/main";
+import { annotationsEntitled, applyEntitlement } from "../src/entitlement";
+
+// Plugin instances under test hold a verified license unless a test says otherwise.
+function entitle<T extends object>(plugin: T): T {
+  applyEntitlement(plugin, { valid: true, payload: { product: "Crisp Suite", licenseId: "TEST", userName: "Test", expiresAt: "2999-01-01T00:00:00Z", features: ["all"] } });
+  return plugin;
+}
 import {
   CrispAnnotationsOutlineView,
   OUTLINE_VIEW_TYPE,
@@ -177,7 +184,7 @@ describe("annotation outline lifecycle", () => {
       minAppVersion: "1.5.0",
       description: "Hand-drawn inline annotations for Obsidian Markdown.",
     };
-    const plugin = new CrispAnnotationsPlugin(app, manifest);
+    const plugin = entitle(new CrispAnnotationsPlugin(app, manifest));
     plugin.app = app;
     plugin.manifest = manifest;
 
@@ -201,7 +208,7 @@ describe("annotation outline lifecycle", () => {
       minAppVersion: "1.8.0",
       description: "Hand-drawn inline annotations for Obsidian Markdown.",
     };
-    const plugin = new CrispAnnotationsPlugin(app, manifest);
+    const plugin = entitle(new CrispAnnotationsPlugin(app, manifest));
     plugin.app = app;
     plugin.manifest = manifest;
     await plugin.onload();
@@ -231,7 +238,7 @@ describe("annotation outline lifecycle", () => {
       minAppVersion: "1.8.0",
       description: "Hand-drawn inline annotations for Obsidian Markdown.",
     };
-    const plugin = new CrispAnnotationsPlugin(app, manifest);
+    const plugin = entitle(new CrispAnnotationsPlugin(app, manifest));
     plugin.app = app;
     plugin.manifest = manifest;
     await plugin.onload();
@@ -257,7 +264,7 @@ describe("annotation outline lifecycle", () => {
       minAppVersion: "1.8.0",
       description: "Hand-drawn inline annotations for Obsidian Markdown.",
     };
-    const plugin = new CrispAnnotationsPlugin(app, manifest);
+    const plugin = entitle(new CrispAnnotationsPlugin(app, manifest));
     plugin.app = app;
     plugin.manifest = manifest;
     await plugin.onload();
@@ -298,7 +305,7 @@ describe("annotation outline lifecycle", () => {
       minAppVersion: "1.8.0",
       description: "Hand-drawn inline annotations for Obsidian Markdown.",
     };
-    const plugin = new CrispAnnotationsPlugin(app, manifest);
+    const plugin = entitle(new CrispAnnotationsPlugin(app, manifest));
     plugin.app = app;
     plugin.manifest = manifest;
     await plugin.onload();
@@ -335,7 +342,7 @@ describe("annotation outline lifecycle", () => {
       minAppVersion: "1.8.0",
       description: "Hand-drawn inline annotations for Obsidian Markdown.",
     };
-    const plugin = new CrispAnnotationsPlugin(app, manifest);
+    const plugin = entitle(new CrispAnnotationsPlugin(app, manifest));
     plugin.app = app;
     plugin.manifest = manifest;
     vi.spyOn(plugin, "ensureLicenseActivated").mockResolvedValue(true);
@@ -400,7 +407,7 @@ describe("annotation outline lifecycle", () => {
       minAppVersion: "1.8.0",
       description: "Hand-drawn inline annotations for Obsidian Markdown.",
     };
-    const plugin = new CrispAnnotationsPlugin(app, manifest);
+    const plugin = entitle(new CrispAnnotationsPlugin(app, manifest));
     plugin.app = app;
     plugin.manifest = manifest;
 
@@ -433,7 +440,7 @@ describe("annotation outline lifecycle", () => {
       minAppVersion: "1.8.0",
       description: "Hand-drawn inline annotations for Obsidian Markdown.",
     };
-    const plugin = new CrispAnnotationsPlugin(app, manifest);
+    const plugin = entitle(new CrispAnnotationsPlugin(app, manifest));
     plugin.app = app;
     plugin.manifest = manifest;
     await plugin.onload();
@@ -487,7 +494,7 @@ describe("annotation outline lifecycle", () => {
       minAppVersion: "1.8.0",
       description: "Hand-drawn inline annotations for Obsidian Markdown.",
     };
-    const plugin = new CrispAnnotationsPlugin(app, manifest);
+    const plugin = entitle(new CrispAnnotationsPlugin(app, manifest));
     plugin.app = app;
     plugin.manifest = manifest;
     vi.spyOn(plugin, "ensureLicenseActivated").mockResolvedValue(true);
@@ -573,9 +580,11 @@ describe("annotation outline lifecycle", () => {
       minAppVersion: "1.8.0",
       description: "Hand-drawn inline annotations for Obsidian Markdown.",
     };
-    const plugin = new CrispAnnotationsPlugin(app, manifest);
+    const plugin = entitle(new CrispAnnotationsPlugin(app, manifest));
     plugin.app = app;
     plugin.manifest = manifest;
+    outline.bindEntitlement(plugin);
+    outline.refresh(source, markdownLeaf);
 
     (plugin as unknown as {
       syncActiveAnnotationFromReading(leaf: WorkspaceLeaf): void;
@@ -599,7 +608,7 @@ describe("annotation outline lifecycle", () => {
       minAppVersion: "1.5.0",
       description: "Hand-drawn inline annotations for Obsidian Markdown.",
     };
-    const plugin = new CrispAnnotationsPlugin(app, manifest);
+    const plugin = entitle(new CrispAnnotationsPlugin(app, manifest));
     plugin.app = app;
     plugin.manifest = manifest;
     plugin.settings = {
@@ -640,7 +649,7 @@ describe("annotation outline lifecycle", () => {
       minAppVersion: "1.8.0",
       description: "Hand-drawn inline annotations for Obsidian Markdown.",
     };
-    const plugin = new CrispAnnotationsPlugin(app, manifest);
+    const plugin = entitle(new CrispAnnotationsPlugin(app, manifest));
     plugin.app = app;
     plugin.manifest = manifest;
     const firstDocument = document.implementation.createHTMLDocument("first");
@@ -674,7 +683,7 @@ describe("annotation outline lifecycle", () => {
       minAppVersion: "1.5.0",
       description: "Hand-drawn inline annotations for Obsidian Markdown.",
     };
-    const plugin = new CrispAnnotationsPlugin(app, manifest);
+    const plugin = entitle(new CrispAnnotationsPlugin(app, manifest));
     plugin.app = app;
     plugin.manifest = manifest;
     await plugin.onload();
@@ -723,7 +732,7 @@ it("refreshes the outline when another file opens in the same tab", async () => 
 
 it('refuses modal writes after the source changes while the dialog is open', async () => {
   const { app, markdownLeaf, getSource } = createWorkspace();
-  const plugin = new CrispAnnotationsPlugin(app, { id: 'crisp-annotations' } as never);
+  const plugin = entitle(new CrispAnnotationsPlugin(app, { id: 'crisp-annotations' } as never));
   plugin.app = app;
   vi.spyOn(plugin, 'ensureLicenseActivated').mockResolvedValue(true);
   vi.spyOn(plugin, 'saveSettings').mockResolvedValue();
@@ -742,10 +751,78 @@ it('refuses modal writes after the source changes while the dialog is open', asy
 
 it('does not reuse an outline source leaf after it has switched to another file', async () => {
   const { app, markdownLeaf } = createWorkspace();
-  const plugin = new CrispAnnotationsPlugin(app, { id: 'crisp-annotations' } as never);
+  const plugin = entitle(new CrispAnnotationsPlugin(app, { id: 'crisp-annotations' } as never));
   plugin.app = app;
   const view = markdownLeaf.view as unknown as MarkdownViewShape;
   view.file = { ...view.file, path: 'Other.md' };
   const result = await (plugin as unknown as {getOutlineEditorContext(c: unknown, open: boolean): Promise<unknown>}).getOutlineEditorContext({ sourceLeaf: markdownLeaf, filePath: 'Current.md' }, false);
   expect(result).toBeNull();
+});
+
+type TestPostProcessor = (element: HTMLElement, context: { sourcePath: string; getSectionInfo(element: HTMLElement): null }) => void;
+const postProcessor = (plugin: object): TestPostProcessor =>
+  (plugin as unknown as { markdownPostProcessors: TestPostProcessor[] }).markdownPostProcessors[0];
+const pluginCommands = (plugin: object) =>
+  (plugin as unknown as { commands: Array<{ id: string; callback?(): void; checkCallback?(checking: boolean): boolean | void }> }).commands;
+
+describe("1.10 activation lock", () => {
+  const manifest = {
+    id: "crisp-annotations",
+    name: "Crisp Annotations",
+    version: "1.10.0",
+    author: "letschips",
+    minAppVersion: "1.8.0",
+    description: "Hand-drawn inline annotations for Obsidian Markdown.",
+  };
+  const annotated = () => {
+    const element = document.createElement("div");
+    element.innerHTML = '<p><mark>迁移指南</mark>{ann note="发布前先复核" color=red} 后文</p>';
+    return element;
+  };
+  const context = { sourcePath: "Current.md", getSectionInfo: () => null };
+
+  it("renders nothing and shows an activation card until a verified license applies", async () => {
+    const { app, outlineLeaf } = createWorkspace();
+    const plugin = new CrispAnnotationsPlugin(app, manifest);
+    plugin.app = app;
+    plugin.manifest = manifest;
+    await plugin.onload();
+    const locked = annotated();
+    postProcessor(plugin)(locked, context);
+    expect(locked.querySelector(".crisp-ann")).toBeNull();
+    await (plugin as unknown as { openAnnotationOutline(): Promise<void> }).openAnnotationOutline();
+    const outline = outlineLeaf.view.containerEl;
+    expect(outline.querySelector(".crisp-ann-outline-locked")).not.toBeNull();
+    expect(outline.querySelectorAll(".crisp-ann-outline-item")).toHaveLength(0);
+
+    entitle(plugin);
+    const unlocked = annotated();
+    postProcessor(plugin)(unlocked, context);
+    expect(unlocked.querySelector(".crisp-ann")).not.toBeNull();
+    expect(outline.querySelector(".crisp-ann-outline-locked")).toBeNull();
+  });
+
+  it("instance flags and look-alike objects cannot unlock", async () => {
+    const { app } = createWorkspace();
+    const plugin = new CrispAnnotationsPlugin(app, manifest);
+    plugin.app = app;
+    Object.assign(plugin, { licenseCacheValid: true, licensed: true, isLicensed: () => true });
+    plugin.settings.licenseCode = "anything.signed";
+    expect(annotationsEntitled(plugin)).toBe(false);
+    expect(await plugin.ensureLicenseActivated()).toBe(false);
+    expect(annotationsEntitled(Object.create(entitle(new CrispAnnotationsPlugin(app, manifest))))).toBe(false);
+  });
+
+  it("commands other than opening the annotation center refuse while locked", async () => {
+    const { app } = createWorkspace();
+    const plugin = new CrispAnnotationsPlugin(app, manifest);
+    plugin.app = app;
+    plugin.manifest = manifest;
+    await plugin.onload();
+    const exportCommand = pluginCommands(plugin).find((command) => command.id === "export-annotations-summary");
+    expect(exportCommand?.checkCallback?.(true)).toBe(false);
+    const recall = plugin.settings.recallMode;
+    pluginCommands(plugin).find((command) => command.id === "toggle-active-recall-mode")?.callback?.();
+    expect(plugin.settings.recallMode).toBe(recall);
+  });
 });

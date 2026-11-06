@@ -2151,6 +2151,27 @@ body.is-mobile .crisp-ann-margin-connectors {
   height: 100%;
 }
 
+/* Unactivated: the annotation center shows only this card. */
+.crisp-ann-outline-locked {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 32px 16px;
+  text-align: center;
+}
+
+.crisp-ann-outline-locked h4 {
+  margin: 0;
+}
+
+.crisp-ann-outline-locked p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+  line-height: 1.6;
+}
+
 .crisp-ann-outline-scope {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

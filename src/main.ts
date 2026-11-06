@@ -43,7 +43,15 @@ import {
   type OutlineAnnotationAction,
   type OutlineAnnotationContext,
 } from "./outline-view";
-import { verifyLicenseCode } from "./license";
+import { verifyLicenseCode, type LicenseVerifyResult } from "./license";
+import { annotationsEntitled, applyEntitlement, onEntitlementChange } from "./entitlement";
+
+// Every gate calls this module function, not a method that could be replaced on the instance.
+function requireEntitled(plugin: object, feature: string): boolean {
+  if (annotationsEntitled(plugin)) return true;
+  new Notice(`🔒 ${feature}需要激活 Crisp Annotations，请在插件设置中输入 Crisp 授权码。`);
+  return false;
+}
 import { findPulseMemoApi, sendAnnotationToPulse } from "./pulse-memo";
 import {
   renderAnnotationsInElement,
@@ -131,13 +139,19 @@ export default class CrispAnnotationsPlugin extends Plugin {
   private readonly readingScrollDocuments = new Set<Document>();
   private readonly readingSyncFrames = new Map<Document, number>();
   private readonly readingSourceIndexes = new WeakMap<Editor, ReadingSourceIndex>();
-  private licenseCacheValid = false;
 
   async onload(): Promise<void> {
     registerIcons();
     const stored: unknown = await this.loadData();
     await this.protectUnreadableData(stored);
     this.settings = normalizeSettings(stored);
+    onEntitlementChange(this, () => this.onEntitlementChanged());
+    if (this.settings.licenseCode) {
+      // Local signature check first so notes render unlocked at once; the device check follows.
+      applyEntitlement(this, await verifyLicenseCode(this.settings.licenseCode, "crisp-annotations", true));
+      void verifyLicenseCode(this.settings.licenseCode, "crisp-annotations")
+        .then((result) => applyEntitlement(this, result));
+    }
     this.vaultAnnotationIndex = new VaultAnnotationIndex(async (file) => {
       const vaultFile = this.app.vault.getFileByPath(file.path);
       if (!vaultFile) {
@@ -172,6 +186,7 @@ export default class CrispAnnotationsPlugin extends Plugin {
     ));
 
     this.registerMarkdownPostProcessor((element, context) => {
+      if (!annotationsEntitled(this)) return;
       const sectionInfo = context.getSectionInfo(element);
       renderAnnotationsInElement(element, (wrapper) => {
         void this.editRenderedAnnotation(context.sourcePath, wrapper);
@@ -218,7 +233,7 @@ export default class CrispAnnotationsPlugin extends Plugin {
       }
     });
     this.registerEditorExtension(createAnnotationEditorExtension(
-      () => this.settings.editorPreview,
+      () => annotationsEntitled(this) && this.settings.editorPreview,
     ));
 
     this.registerView(
@@ -229,7 +244,7 @@ export default class CrispAnnotationsPlugin extends Plugin {
         () => { void this.ensureVaultIndex(); },
         (action, context) => { void this.handleOutlineAction(action, context); },
         () => findPulseMemoApi(this.app) !== null,
-      ),
+      ).bindEntitlement(this, () => this.openLicenseSettings()),
     );
 
     this.registerEvent(this.app.vault.on("create", (file) => {
@@ -287,7 +302,7 @@ export default class CrispAnnotationsPlugin extends Plugin {
       // Read-only, so it also works from Reading view where editor commands are hidden.
       checkCallback: (checking) => {
         const context = this.getMarkdownContext(this.app.workspace.activeLeaf);
-        if (!context || context.leaf !== this.app.workspace.activeLeaf) {
+        if (!annotationsEntitled(this) || !context || context.leaf !== this.app.workspace.activeLeaf) {
           return false;
         }
         if (!checking) {
@@ -300,6 +315,7 @@ export default class CrispAnnotationsPlugin extends Plugin {
       id: "toggle-active-recall-mode",
       name: "Toggle active recall / mask mode (切换批注遮罩自测模式)",
       callback: () => {
+        if (!requireEntitled(this, "遮罩自测模式")) return;
         void this.setRecallMode(!this.settings.recallMode, true);
       },
     });
@@ -317,6 +333,7 @@ export default class CrispAnnotationsPlugin extends Plugin {
     });
 
     this.registerEvent(this.app.workspace.on("editor-menu", (menu, editor) => {
+      if (!annotationsEntitled(this)) return;
       addAnnotationContextMenuItem(
         menu,
         editor,
@@ -373,7 +390,6 @@ export default class CrispAnnotationsPlugin extends Plugin {
   }
 
   async saveSettings(): Promise<void> {
-    this.licenseCacheValid = false;
     await this.saveData(this.settings);
     this.applyAppearanceSettings();
     this.marginLayout.refreshAll();
@@ -589,21 +605,34 @@ export default class CrispAnnotationsPlugin extends Plugin {
     }
   }
 
-  async ensureLicenseActivated(): Promise<boolean> {
-    if (!this.settings.licenseCode) {
-      new Notice("🔒 Crisp Annotations 未激活，请先在插件设置中激活 Crisp 授权。");
-      return false;
+  ensureLicenseActivated(): Promise<boolean> {
+    return Promise.resolve(requireEntitled(this, "标注"));
+  }
+
+  /** Verifies the saved code online and applies the result; used by the settings tab. */
+  async activateLicense(): Promise<LicenseVerifyResult> {
+    const result = await verifyLicenseCode(this.settings.licenseCode, "crisp-annotations");
+    applyEntitlement(this, result);
+    return result;
+  }
+
+  openLicenseSettings(): void {
+    const setting = (this.app as unknown as { setting?: { open?(): void; openTabById?(id: string): void } }).setting;
+    setting?.open?.();
+    setting?.openTabById?.(this.manifest?.id ?? "crisp-annotations");
+  }
+
+  // Locking or unlocking re-renders everything this plugin draws.
+  private onEntitlementChanged(): void {
+    this.app.workspace.updateOptions();
+    for (const leaf of this.app.workspace.getLeavesOfType("markdown")) {
+      (leaf.view as { previewMode?: { rerender?(full?: boolean): void } }).previewMode?.rerender?.(true);
     }
-    if (this.licenseCacheValid) {
-      return true;
+    this.marginLayout.refreshAll();
+    for (const leaf of this.app.workspace.getLeavesOfType(OUTLINE_VIEW_TYPE)) {
+      if (leaf.view instanceof CrispAnnotationsOutlineView) leaf.view.rerender();
     }
-    const check = await verifyLicenseCode(this.settings.licenseCode, "crisp-annotations", true);
-    if (!check.valid) {
-      new Notice(`🔒 Crisp Annotations 授权无效: ${check.reason || "未激活"}`);
-      return false;
-    }
-    this.licenseCacheValid = true;
-    return true;
+    this.refreshOutlineViews();
   }
 
   // Modal coordinates are only valid for the document snapshot that opened it.
@@ -621,7 +650,7 @@ export default class CrispAnnotationsPlugin extends Plugin {
   }
 
   private async openAnnotationModal(editor: Editor): Promise<void> {
-    if (!(await this.ensureLicenseActivated())) return;
+    if (!requireEntitled(this, "添加或编辑标注")) return;
     const source = editor.getValue();
     const cursorOffset = editor.posToOffset(editor.getCursor());
     const existing = findAnnotationAt(source, cursorOffset);
@@ -679,7 +708,7 @@ export default class CrispAnnotationsPlugin extends Plugin {
   }
 
   private async openAnnotationOutline(): Promise<void> {
-    await this.ensureVaultIndex();
+    if (annotationsEntitled(this)) await this.ensureVaultIndex();
     const context = this.getMarkdownContext();
     if (context) {
       this.lastMarkdownLeaf = context.leaf;
@@ -687,6 +716,7 @@ export default class CrispAnnotationsPlugin extends Plugin {
     const leaves = this.app.workspace.getLeavesOfType(OUTLINE_VIEW_TYPE);
     if (leaves.length > 0) {
       const view = leaves[0].view;
+      if (view instanceof CrispAnnotationsOutlineView) view.bindEntitlement(this, () => this.openLicenseSettings());
       if (view instanceof CrispAnnotationsOutlineView && context) {
         view.refresh(context.source, context.leaf);
       }
@@ -703,6 +733,7 @@ export default class CrispAnnotationsPlugin extends Plugin {
         active: true,
       });
       const view = leaf.view;
+      if (view instanceof CrispAnnotationsOutlineView) view.bindEntitlement(this, () => this.openLicenseSettings());
       if (view instanceof CrispAnnotationsOutlineView && context) {
         view.refresh(context.source, context.leaf);
       }
@@ -797,6 +828,7 @@ export default class CrispAnnotationsPlugin extends Plugin {
     filePath: string,
     wrapper: HTMLElement,
   ): Promise<void> {
+    if (!requireEntitled(this, "编辑标注")) return;
     const leaf = this.findMarkdownLeaf(filePath, wrapper);
     const editor = (leaf?.view as { editor?: Editor } | undefined)?.editor;
     if (!leaf || !editor) {
@@ -844,6 +876,7 @@ export default class CrispAnnotationsPlugin extends Plugin {
     action: OutlineAnnotationAction,
     context: OutlineAnnotationContext,
   ): Promise<void> {
+    if (!requireEntitled(this, "标注操作")) return;
     if (action === "copy") {
       const text = `${context.annotation.target}\n${context.annotation.spec.note}`;
       try {
@@ -1007,6 +1040,7 @@ export default class CrispAnnotationsPlugin extends Plugin {
   private navigateAdjacentAnnotation(
     direction: AnnotationNavigationDirection,
   ): void {
+    if (!requireEntitled(this, "标注跳转")) return;
     const context = this.getMarkdownContext();
     if (!context) {
       new Notice("请先打开一篇 Markdown 文档。");
@@ -1093,13 +1127,14 @@ export default class CrispAnnotationsPlugin extends Plugin {
     for (const leaf of this.app.workspace.getLeavesOfType(OUTLINE_VIEW_TYPE)) {
       const view = leaf.view;
       if (view instanceof CrispAnnotationsOutlineView) {
+        view.bindEntitlement(this, () => this.openLicenseSettings());
         view.refresh(context.source, context.leaf);
       }
     }
   }
 
   private async openQuickAnnotationModal(editor: Editor): Promise<void> {
-    if (!(await this.ensureLicenseActivated())) return;
+    if (!requireEntitled(this, "快速标注")) return;
     const source = editor.getValue();
     const cursorOffset = editor.posToOffset(editor.getCursor());
     const existing = findAnnotationAt(source, cursorOffset);
@@ -1156,6 +1191,7 @@ export default class CrispAnnotationsPlugin extends Plugin {
   }
 
   private removeAnnotation(editor: Editor): void {
+    if (!requireEntitled(this, "删除标注")) return;
     const source = editor.getValue();
     const cursorOffset = editor.posToOffset(editor.getCursor());
     const existing = findAnnotationAt(source, cursorOffset);
@@ -1174,6 +1210,7 @@ export default class CrispAnnotationsPlugin extends Plugin {
   }
 
   private toggleQuickHighlight(editor: Editor): void {
+    if (!requireEntitled(this, "高亮切换")) return;
     const source = editor.getValue();
     const cursorOffset = editor.posToOffset(editor.getCursor());
     const existing = findAnnotationAt(source, cursorOffset);
@@ -1284,7 +1321,7 @@ class CrispAnnotationsSettingTab extends PluginSettingTab {
       .setDesc("正在验证授权状态...");
 
     if (this.plugin.settings.licenseCode) {
-      void verifyLicenseCode(this.plugin.settings.licenseCode, "crisp-annotations").then((verifyRes) => {
+      void this.plugin.activateLicense().then((verifyRes) => {
         if (verifyRes.valid && verifyRes.payload) {
           statusSetting.setDesc(
             `✅ 已激活（授权给: ${verifyRes.payload.userName}，到期时间: ${verifyRes.payload.expiresAt.split("T")[0]}）`,
@@ -1313,7 +1350,7 @@ class CrispAnnotationsSettingTab extends PluginSettingTab {
         .setButtonText("激活 / 重新验证")
         .setCta()
         .onClick(async () => {
-          const result = await verifyLicenseCode(this.plugin.settings.licenseCode, "crisp-annotations");
+          const result = await this.plugin.activateLicense();
           if (result.valid && result.payload) {
             new Notice(`🎉 Crisp Annotations 激活成功！欢迎使用，${result.payload.userName}`);
             this.display();

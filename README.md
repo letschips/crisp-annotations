@@ -26,7 +26,7 @@ Adds hand-drawn arrows and handwritten-style notes to inline Markdown highlights
 
 ## Developer Policy & Network Disclosure
 
-- **Optional Premium Features & License Activation**: Core annotation reading, rendering, and outline features are free to use. Premium visual customization options can be unlocked with an offline/online Crisp Suite license code.
+- **License Activation**: Crisp Annotations requires a Crisp Suite / Crisp Annotations license code. Without activation, annotations are not rendered, the annotation center shows only an activation card, and annotation commands are unavailable; the annotation syntax stays in your notes as plain Markdown.
 - **Network Requests**: When validating a license code, an HTTPS request is sent to `https://license.letschips.xyz/api/verify-device` solely for device count registration. If offline, the plugin falls back to local offline Ed25519 cryptographic verification. No vault note contents or private data are ever sent over the network.
 
 ---
