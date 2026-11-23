@@ -137,7 +137,7 @@ export default class CrispAnnotationsPlugin extends Plugin {
   private vaultIndexReady = false;
   private vaultIndexBuild: Promise<void> | null = null;
   private readonly readingScrollDocuments = new Set<Document>();
-  private readonly readingSyncFrames = new Map<Document, number>();
+  private readonly readingSyncFrames = new Map<Document, () => void>();
   private readonly readingSourceIndexes = new WeakMap<Editor, ReadingSourceIndex>();
 
   async onload(): Promise<void> {
@@ -177,11 +177,8 @@ export default class CrispAnnotationsPlugin extends Plugin {
         const closedDocument = window.document;
         this.appearanceDocuments.delete(closedDocument);
         this.readingScrollDocuments.delete(closedDocument);
-        const frame = this.readingSyncFrames.get(closedDocument);
-        if (frame !== undefined) {
-          closedDocument.defaultView?.cancelAnimationFrame(frame);
-          this.readingSyncFrames.delete(closedDocument);
-        }
+        this.readingSyncFrames.get(closedDocument)?.();
+        this.readingSyncFrames.delete(closedDocument);
       },
     ));
 
@@ -399,8 +396,8 @@ export default class CrispAnnotationsPlugin extends Plugin {
   onunload(): void {
     this.cancelOutlineRefresh();
     this.marginLayout.destroy();
-    for (const [readingDocument, frame] of this.readingSyncFrames) {
-      readingDocument.defaultView?.cancelAnimationFrame(frame);
+    for (const cancel of this.readingSyncFrames.values()) {
+      cancel();
     }
     this.readingSyncFrames.clear();
     this.readingScrollDocuments.clear();
@@ -541,11 +538,19 @@ export default class CrispAnnotationsPlugin extends Plugin {
     if (!readingWindow || this.readingSyncFrames.has(readingDocument)) {
       return;
     }
+    // 1.10.1：阅读模式滚动时会边滚边渲染段落，在动画帧里量位置会强制重排；
+    // 等这一帧排版画完（下一个宏任务）再量，读到的是现成的布局。
+    let timer: number | null = null;
     const frame = readingWindow.requestAnimationFrame(() => {
-      this.readingSyncFrames.delete(readingDocument);
-      this.syncActiveAnnotationFromReading(leaf);
+      timer = readingWindow.setTimeout(() => {
+        this.readingSyncFrames.delete(readingDocument);
+        this.syncActiveAnnotationFromReading(leaf);
+      }, 0);
     });
-    this.readingSyncFrames.set(readingDocument, frame);
+    this.readingSyncFrames.set(readingDocument, () => {
+      readingWindow.cancelAnimationFrame(frame);
+      if (timer !== null) readingWindow.clearTimeout(timer);
+    });
   }
 
   private syncActiveAnnotationFromReading(leaf: WorkspaceLeaf): void {
@@ -554,6 +559,15 @@ export default class CrispAnnotationsPlugin extends Plugin {
       editor?: Editor;
       file?: { path?: string };
     };
+    // 结果只用来高亮标注面板的当前条目：没开面板就不量
+    const outlines = this.app.workspace.getLeavesOfType(OUTLINE_VIEW_TYPE)
+      .map((outlineLeaf) => outlineLeaf.view)
+      .filter((outline): outline is CrispAnnotationsOutlineView => (
+        outline instanceof CrispAnnotationsOutlineView
+      ));
+    if (outlines.length === 0) {
+      return;
+    }
     const preview = view.containerEl.querySelector<HTMLElement>(
       ".markdown-preview-view",
     );
@@ -565,6 +579,10 @@ export default class CrispAnnotationsPlugin extends Plugin {
     const wrappers = Array.from(preview.querySelectorAll<HTMLElement>(
       ".crisp-ann",
     ));
+    if (wrappers.length === 0) {
+      this.clearActiveOutlineAnnotation();
+      return;
+    }
     const viewportRect = preview.getBoundingClientRect();
     const viewportTop = viewportRect.top;
     const viewportBottom = viewportRect.bottom > viewportRect.top
@@ -583,11 +601,7 @@ export default class CrispAnnotationsPlugin extends Plugin {
       : index !== null && wrappers.length === annotations.length
         ? annotations[index] ?? null
         : null;
-    for (const outlineLeaf of this.app.workspace.getLeavesOfType(OUTLINE_VIEW_TYPE)) {
-      const outline = outlineLeaf.view;
-      if (!(outline instanceof CrispAnnotationsOutlineView)) {
-        continue;
-      }
+    for (const outline of outlines) {
       if (annotation) {
         outline.setActiveAnnotation(filePath, annotation.from);
       } else {

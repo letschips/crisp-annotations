@@ -598,6 +598,71 @@ describe("annotation outline lifecycle", () => {
     expect(items[1].getAttribute("aria-current")).toBe("true");
   });
 
+  it("does not measure the reading view while no annotation panel is open", () => {
+    const { app, markdownLeaf } = createWorkspace();
+    const source = '==First=={ann note="One"}';
+    const markdownView = markdownLeaf.view as unknown as MarkdownViewShape;
+    Object.assign(markdownView.editor, { getValue: () => source });
+    const preview = document.createElement("div");
+    preview.className = "markdown-preview-view";
+    markdownView.containerEl.append(preview);
+    const wrapper = document.createElement("span");
+    wrapper.className = "crisp-ann";
+    preview.append(wrapper);
+    // Reading mode keeps rendering sections while it scrolls, so every rect read forces a layout.
+    const measured = vi.fn(() => new DOMRect(0, 0, 10, 10));
+    preview.getBoundingClientRect = measured;
+    wrapper.getBoundingClientRect = measured;
+    const manifest = { id: "crisp-annotations", name: "Crisp Annotations", version: "1.10.0", author: "letschips", minAppVersion: "1.8.0", description: "" };
+    const plugin = entitle(new CrispAnnotationsPlugin(app, manifest));
+    plugin.app = app;
+    plugin.manifest = manifest;
+    (plugin as unknown as { syncActiveAnnotationFromReading(leaf: WorkspaceLeaf): void })
+      .syncActiveAnnotationFromReading(markdownLeaf);
+    expect(measured).not.toHaveBeenCalled();
+  });
+
+  it("measures reading annotations after the frame has been laid out", async () => {
+    const { app, markdownLeaf, outlineLeaf } = createWorkspace();
+    const source = '==First=={ann note="One"}';
+    const markdownView = markdownLeaf.view as unknown as MarkdownViewShape;
+    Object.assign(markdownView.editor, { getValue: () => source });
+    const preview = document.createElement("div");
+    preview.className = "markdown-preview-view";
+    markdownView.containerEl.append(preview);
+    const wrapper = document.createElement("span");
+    wrapper.className = "crisp-ann";
+    wrapper.dataset.crispAnnFrom = String(findAnnotations(source)[0].from);
+    preview.append(wrapper);
+    const measured = vi.fn(() => new DOMRect(0, 100, 10, 10));
+    preview.getBoundingClientRect = () => new DOMRect(0, 0, 800, 600);
+    wrapper.getBoundingClientRect = measured;
+    await outlineLeaf.setViewState({ type: OUTLINE_VIEW_TYPE });
+    const manifest = { id: "crisp-annotations", name: "Crisp Annotations", version: "1.10.0", author: "letschips", minAppVersion: "1.8.0", description: "" };
+    const plugin = entitle(new CrispAnnotationsPlugin(app, manifest));
+    plugin.app = app;
+    plugin.manifest = manifest;
+    const frames: FrameRequestCallback[] = [];
+    const win = markdownView.containerEl.ownerDocument.defaultView as Window;
+    const raf = vi.spyOn(win, "requestAnimationFrame").mockImplementation((cb) => { frames.push(cb); return frames.length; });
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      const sync = plugin as unknown as { scheduleReadingSync(leaf: WorkspaceLeaf): void };
+      sync.scheduleReadingSync(markdownLeaf);
+      sync.scheduleReadingSync(markdownLeaf);
+      expect(frames).toHaveLength(1);
+      frames[0](0);
+      expect(measured).not.toHaveBeenCalled();
+      vi.runAllTimers();
+      expect(measured).toHaveBeenCalledOnce();
+      sync.scheduleReadingSync(markdownLeaf);
+      expect(frames).toHaveLength(2);
+    } finally {
+      vi.useRealTimers();
+      raf.mockRestore();
+    }
+  });
+
   it("removes every plugin-owned appearance marker on unload", () => {
     const { app } = createWorkspace();
     const manifest = {
