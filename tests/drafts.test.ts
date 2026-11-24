@@ -12,6 +12,7 @@ import { applyEntitlement } from "../src/entitlement";
 import {
   addDraft,
   adoptOrphanDrafts,
+  draftCutRange,
   draftsFor,
   normalizeDrafts,
   removeDraft,
@@ -25,6 +26,33 @@ vi.mock("../src/icons", () => ({ registerIcons: vi.fn() }));
 
 const LICENSE: Parameters<typeof applyEntitlement>[1] = { valid: true, payload: { product: "Crisp Suite", licenseId: "TEST", userName: "Test", expiresAt: "2999-01-01T00:00:00Z", features: ["all"] } };
 const draft = (id: string, text = id, createdAt = 1): NoteDraft => ({ id, text, createdAt });
+
+describe("cut range for a moved paragraph", () => {
+  const cut = (value: string, selected: string) => {
+    const from = value.indexOf(selected);
+    const range = draftCutRange(value, from, from + selected.length);
+    return value.slice(0, range.from) + value.slice(range.to);
+  };
+
+  it("leaves one blank line between the paragraphs around a moved paragraph", () => {
+    expect(cut("甲。\n\n乙。\n\n丙。", "乙。")).toBe("甲。\n\n丙。");
+    expect(cut("甲。\n\n乙。\n\n\n丙。", "乙。")).toBe("甲。\n\n丙。");
+    expect(cut("甲。\n\n乙。\n\n丙。", "乙。\n\n")).toBe("甲。\n\n丙。");
+  });
+
+  it("does not leave blank lines at the top, and keeps at most one newline at the end", () => {
+    expect(cut("甲。\n\n乙。", "甲。")).toBe("乙。");
+    expect(cut("甲。\n\n乙。\n", "乙。\n")).toBe("甲。\n");
+    expect(cut("甲。\n\n乙。", "乙。")).toBe("甲。\n");
+  });
+
+  it("removes a whole line without leaving an empty one, and cuts only the selection inside a line", () => {
+    expect(cut("开头。可惜的一段。结尾。", "可惜的一段。")).toBe("开头。结尾。");
+    expect(cut("甲\n乙\n丙", "乙")).toBe("甲\n丙");
+    expect(cut("甲\n乙\n丙", "乙\n")).toBe("甲\n丙");
+    expect(cut("甲乙\n丙", "乙")).toBe("甲\n丙");
+  });
+});
 
 describe("draft map", () => {
   it("drops malformed entries and keeps valid ones", () => {
@@ -150,6 +178,16 @@ describe("moving text into drafts", () => {
     expect(await h.api.moveSelectionToDrafts(h.editor, h.file)).toBe(true);
     expect(h.getValue()).toBe("开头。结尾。");
     expect(h.stored().drafts?.["Note.md"].map((d) => d.text)).toEqual(["可惜的一段。"]);
+  });
+
+  it("removes the blank lines a moved paragraph leaves behind, but stores only the selection", async () => {
+    const h = harness();
+    await h.plugin.onload();
+    h.setValue("第一段。\n\n挪走的一段。\n\n最后一段。");
+    h.setSelection(6, 12);
+    expect(await h.api.moveSelectionToDrafts(h.editor, h.file)).toBe(true);
+    expect(h.getValue()).toBe("第一段。\n\n最后一段。");
+    expect(h.stored().drafts?.["Note.md"].map((d) => d.text)).toEqual(["挪走的一段。"]);
   });
 
   it("leaves the note untouched when the draft could not be written", async () => {

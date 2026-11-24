@@ -77,6 +77,32 @@ export function adoptOrphanDrafts(map: DraftMap, path: string, exists: (path: st
   return candidates.length === 1 ? renameDraftPath(map, candidates[0], path) : map;
 }
 
+function countNewlines(text: string, fromEnd: boolean): number {
+  let count = 0;
+  while (count < text.length && text[fromEnd ? text.length - 1 - count : count] === "\n") count++;
+  return count;
+}
+
+/**
+ * The range to cut when the selection [from, to) moves to drafts: the selection itself, plus the
+ * line breaks that would otherwise pile up where whole lines were taken out. Paragraphs that were
+ * separated by a blank line keep one; adjacent lines stay adjacent; nothing is left at the top and
+ * at most one line break at the end.
+ */
+export function draftCutRange(value: string, from: number, to: number): { from: number; to: number } {
+  const before = value.slice(0, from);
+  const after = value.slice(to);
+  const lead = countNewlines(before, true);
+  const trail = countNewlines(after, false);
+  if (before.length === 0) return { from, to: to + trail };
+  if (after.length === 0) return { from: from - Math.max(0, lead - 1), to };
+  if (lead === 0 || trail === 0) return { from, to };
+  let excess = lead + trail - (lead >= 2 || trail >= 2 ? 2 : 1);
+  const fromAfter = Math.min(excess, trail);
+  excess -= fromAfter;
+  return { from: from - excess, to: to + fromAfter };
+}
+
 export function newDraftId(now = Date.now()): string {
   return `${now.toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 }

@@ -14,6 +14,7 @@ import { preserveUnreadableData, verifyDataWrite } from "./data-safety";
 import {
   addDraft,
   adoptOrphanDrafts,
+  draftCutRange,
   draftsFor,
   newDraftId,
   normalizeDrafts,
@@ -505,7 +506,9 @@ export default class CrispAnnotationsPlugin extends Plugin {
       new Notice("保存草稿时正文有改动，这段原文没有删除，草稿已保存。");
       return false;
     }
-    editor.replaceRange("", from, to);
+    // One edit, so a single undo restores the paragraph together with its surrounding line breaks.
+    const range = draftCutRange(before, editor.posToOffset(from), editor.posToOffset(to));
+    editor.replaceRange("", editor.offsetToPos(range.from), editor.offsetToPos(range.to));
     new Notice("已移入草稿");
     return true;
   }
