@@ -10,7 +10,18 @@ import {
   type TFile,
   type WorkspaceLeaf,
 } from "obsidian";
-import { preserveUnreadableData } from "./data-safety";
+import { preserveUnreadableData, verifyDataWrite } from "./data-safety";
+import {
+  addDraft,
+  adoptOrphanDrafts,
+  draftsFor,
+  newDraftId,
+  normalizeDrafts,
+  removeDraft,
+  renameDraftPath,
+  type DraftAction,
+  type DraftMap,
+} from "./drafts";
 import { AnnotationModal } from "./annotation-modal";
 import { SimpleAnnotationModal } from "./annotation-sheet-modal";
 import { QuickAnnotationModal } from "./quick-annotation-modal";
@@ -41,6 +52,7 @@ import {
   CrispAnnotationsOutlineView,
   OUTLINE_VIEW_TYPE,
   type OutlineAnnotationAction,
+  type OutlineDraftHost,
   type OutlineAnnotationContext,
 } from "./outline-view";
 import { verifyLicenseCode, type LicenseVerifyResult } from "./license";
@@ -109,11 +121,18 @@ interface ReadingSourceIndex {
 export default class CrispAnnotationsPlugin extends Plugin {
 
   private dataWriteBlocked = false;
+  // Paragraphs parked per note; stored next to the settings in data.json.
+  private drafts: DraftMap = {};
 
   // Never overwrite a data.json that could not be read and could not be backed up either.
+  // Every save carries the drafts, so a settings save can never write data.json without them.
   async saveData(data: unknown): Promise<void> {
     if (this.dataWriteBlocked) return;
-    await super.saveData(data);
+    await super.saveData(this.withDrafts(data));
+  }
+
+  private withDrafts(data: unknown): unknown {
+    return data && typeof data === "object" ? { ...data, drafts: this.drafts } : data;
   }
 
   // loadData() yields undefined when data.json exists but cannot be read; keep a copy before defaults take over.
@@ -145,6 +164,7 @@ export default class CrispAnnotationsPlugin extends Plugin {
     const stored: unknown = await this.loadData();
     await this.protectUnreadableData(stored);
     this.settings = normalizeSettings(stored);
+    this.drafts = normalizeDrafts((stored as { drafts?: unknown } | null | undefined)?.drafts);
     onEntitlementChange(this, () => this.onEntitlementChanged());
     if (this.settings.licenseCode) {
       // Local signature check first so notes render unlocked at once; the device check follows.
@@ -241,7 +261,7 @@ export default class CrispAnnotationsPlugin extends Plugin {
         () => { void this.ensureVaultIndex(); },
         (action, context) => { void this.handleOutlineAction(action, context); },
         () => findPulseMemoApi(this.app) !== null,
-      ).bindEntitlement(this, () => this.openLicenseSettings()),
+      ).bindEntitlement(this, () => this.openLicenseSettings()).bindDrafts(this.draftHost),
     );
 
     this.registerEvent(this.app.vault.on("create", (file) => {
@@ -262,6 +282,12 @@ export default class CrispAnnotationsPlugin extends Plugin {
       this.refreshVaultOutlineViews();
     }));
     this.registerEvent(this.app.vault.on("rename", (file, oldPath) => {
+      const renamed = renameDraftPath(this.drafts, oldPath, file.path);
+      if (renamed !== this.drafts) {
+        this.drafts = renamed;
+        void this.persistDrafts().catch((error) => console.error("Crisp Annotations could not save drafts after a rename", error));
+        this.rerenderOutlineViews();
+      }
       if (!this.vaultIndexReady || !this.vaultAnnotationIndex) {
         return;
       }
@@ -309,6 +335,15 @@ export default class CrispAnnotationsPlugin extends Plugin {
       },
     });
     this.addCommand({
+      id: "move-selection-to-drafts",
+      name: "Move selection to drafts (移入草稿)",
+      editorCheckCallback: (checking, editor, context) => {
+        if (!annotationsEntitled(this) || !editor.getSelection().trim() || !context.file) return false;
+        if (!checking) void this.moveSelectionToDrafts(editor, context.file);
+        return true;
+      },
+    });
+    this.addCommand({
       id: "toggle-active-recall-mode",
       name: "Toggle active recall / mask mode (切换批注遮罩自测模式)",
       callback: () => {
@@ -329,7 +364,7 @@ export default class CrispAnnotationsPlugin extends Plugin {
       callback: () => this.navigateAdjacentAnnotation("next"),
     });
 
-    this.registerEvent(this.app.workspace.on("editor-menu", (menu, editor) => {
+    this.registerEvent(this.app.workspace.on("editor-menu", (menu, editor, info) => {
       if (!annotationsEntitled(this)) return;
       addAnnotationContextMenuItem(
         menu,
@@ -338,6 +373,14 @@ export default class CrispAnnotationsPlugin extends Plugin {
         (activeEditor) => this.removeAnnotation(activeEditor),
         (activeEditor) => this.toggleQuickHighlight(activeEditor),
       );
+      const file = info.file;
+      if (file && editor.getSelection().trim()) {
+        menu.addItem((item) => item
+          .setTitle("移入草稿")
+          .setIcon("archive")
+          .setSection("action")
+          .onClick(() => { void this.moveSelectionToDrafts(editor, file); }));
+      }
     }));
 
     this.registerEvent(this.app.workspace.on("active-leaf-change", (leaf) => {
@@ -408,6 +451,105 @@ export default class CrispAnnotationsPlugin extends Plugin {
       clearArrowAppearanceSettings(appearanceDocument.body.style);
     }
     this.appearanceDocuments.clear();
+  }
+
+  /* ---------- drafts ---------- */
+
+  private readonly draftHost: OutlineDraftHost = {
+    list: (path) => {
+      const adopted = adoptOrphanDrafts(this.drafts, path, (candidate) => Boolean(this.app.vault.getAbstractFileByPath(candidate)));
+      if (adopted !== this.drafts) {
+        this.drafts = adopted;
+        void this.persistDrafts().catch((error) => console.error("Crisp Annotations could not save re-attached drafts", error));
+      }
+      return draftsFor(this.drafts, path);
+    },
+    act: (action, path, id) => { void this.handleDraftAction(action, path, id); },
+  };
+
+  /** Writes data.json and reads it back; throws when the drafts did not reach disk. */
+  private async persistDrafts(): Promise<void> {
+    await this.saveData(this.settings);
+    await verifyDataWrite(this.app.vault.adapter, `${this.manifest.dir}/data.json`, this.withDrafts(this.settings));
+  }
+
+  private rerenderOutlineViews(): void {
+    for (const leaf of this.app.workspace.getLeavesOfType(OUTLINE_VIEW_TYPE)) {
+      if (leaf.view instanceof CrispAnnotationsOutlineView) leaf.view.rerender();
+    }
+  }
+
+  /** Saves the selection as a draft first; the note is changed only once the draft is on disk. */
+  private async moveSelectionToDrafts(editor: Editor, file: { path: string }): Promise<boolean> {
+    if (!requireEntitled(this, "草稿")) return false;
+    const text = editor.getSelection();
+    if (!text.trim()) {
+      new Notice("请先选中要移入草稿的文字。");
+      return false;
+    }
+    const from = editor.getCursor("from");
+    const to = editor.getCursor("to");
+    const before = editor.getValue();
+    const previous = this.drafts;
+    this.drafts = addDraft(this.drafts, file.path, { id: newDraftId(), text, createdAt: Date.now() });
+    try {
+      await this.persistDrafts();
+    } catch (error) {
+      this.drafts = previous;
+      console.error("Crisp Annotations could not save the draft", error);
+      new Notice("草稿没能保存，正文没有改动。");
+      return false;
+    }
+    this.rerenderOutlineViews();
+    if (editor.getValue() !== before) {
+      new Notice("保存草稿时正文有改动，这段原文没有删除，草稿已保存。");
+      return false;
+    }
+    editor.replaceRange("", from, to);
+    new Notice("已移入草稿");
+    return true;
+  }
+
+  private async handleDraftAction(action: DraftAction, path: string, id: string): Promise<void> {
+    const draft = draftsFor(this.drafts, path).find((candidate) => candidate.id === id);
+    if (!draft) return;
+    if (action === "copy") {
+      await navigator.clipboard.writeText(draft.text);
+      new Notice("已复制草稿");
+      return;
+    }
+    if (action === "insert") {
+      const leaves = this.app.workspace.getLeavesOfType("markdown");
+      const leaf = [this.lastMarkdownLeaf, ...leaves].find((candidate) => (
+        candidate && leaves.includes(candidate)
+        && (candidate.view as { file?: { path?: string } }).file?.path === path
+      ));
+      const editor = (leaf?.view as { editor?: Editor } | undefined)?.editor;
+      if (!editor) {
+        new Notice("先打开这篇笔记，再插回草稿。");
+        return;
+      }
+      editor.replaceSelection(draft.text);
+      editor.focus?.();
+    }
+    const previous = this.drafts;
+    this.drafts = removeDraft(this.drafts, path, id);
+    try {
+      await this.persistDrafts();
+    } catch (error) {
+      this.drafts = previous;
+      console.error("Crisp Annotations could not save drafts", error);
+      new Notice(action === "insert" ? "已插回正文，但草稿没能从列表移除。" : "草稿没能删除，请稍后再试。");
+    }
+    this.rerenderOutlineViews();
+  }
+
+  // Sync tools (iCloud, Obsidian Sync) replaced data.json: take the drafts written on the other device.
+  async onExternalSettingsChange(): Promise<void> {
+    const stored: unknown = await this.loadData();
+    if (!stored || typeof stored !== "object") return;
+    this.drafts = normalizeDrafts((stored as { drafts?: unknown }).drafts);
+    this.rerenderOutlineViews();
   }
 
   private cancelOutlineRefresh(): void {
@@ -730,7 +872,7 @@ export default class CrispAnnotationsPlugin extends Plugin {
     const leaves = this.app.workspace.getLeavesOfType(OUTLINE_VIEW_TYPE);
     if (leaves.length > 0) {
       const view = leaves[0].view;
-      if (view instanceof CrispAnnotationsOutlineView) view.bindEntitlement(this, () => this.openLicenseSettings());
+      if (view instanceof CrispAnnotationsOutlineView) view.bindEntitlement(this, () => this.openLicenseSettings()).bindDrafts(this.draftHost);
       if (view instanceof CrispAnnotationsOutlineView && context) {
         view.refresh(context.source, context.leaf);
       }
@@ -747,7 +889,7 @@ export default class CrispAnnotationsPlugin extends Plugin {
         active: true,
       });
       const view = leaf.view;
-      if (view instanceof CrispAnnotationsOutlineView) view.bindEntitlement(this, () => this.openLicenseSettings());
+      if (view instanceof CrispAnnotationsOutlineView) view.bindEntitlement(this, () => this.openLicenseSettings()).bindDrafts(this.draftHost);
       if (view instanceof CrispAnnotationsOutlineView && context) {
         view.refresh(context.source, context.leaf);
       }
@@ -1141,7 +1283,7 @@ export default class CrispAnnotationsPlugin extends Plugin {
     for (const leaf of this.app.workspace.getLeavesOfType(OUTLINE_VIEW_TYPE)) {
       const view = leaf.view;
       if (view instanceof CrispAnnotationsOutlineView) {
-        view.bindEntitlement(this, () => this.openLicenseSettings());
+        view.bindEntitlement(this, () => this.openLicenseSettings()).bindDrafts(this.draftHost);
         view.refresh(context.source, context.leaf);
       }
     }

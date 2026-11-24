@@ -17,6 +17,14 @@ import {
   type VaultAnnotationColorFilter,
   type VaultAnnotationEntry,
 } from "./vault-annotation-index";
+import type { DraftAction, NoteDraft } from "./drafts";
+
+export interface OutlineDraftHost {
+  list(path: string): NoteDraft[];
+  act(action: DraftAction, path: string, id: string): void;
+}
+
+type OutlineScope = "current" | "vault" | "drafts";
 
 export const OUTLINE_VIEW_TYPE = "crisp-annotations-outline-view";
 
@@ -60,12 +68,14 @@ export class CrispAnnotationsOutlineView extends ItemView {
   private annotations: AnnotationMatch[] = [];
   private vaultAnnotations: VaultAnnotationEntry[] = [];
   private sourceLeaf: WorkspaceLeaf | null = null;
-  private outlineScope: "current" | "vault" = "current";
+  private outlineScope: OutlineScope = "current";
   private searchQuery = "";
   private colorFilter: VaultAnnotationColorFilter = "all";
   private vaultLoading = false;
   private activeAnnotation: { filePath: string; from: number } | null = null;
-  private renderedScope: "current" | "vault" | null = null;
+  private renderedScope: OutlineScope | null = null;
+  private draftHost: OutlineDraftHost | null = null;
+  private pendingDraftRemoval: string | null = null;
   private readonly settingsProvider: () => CrispAnnotationsSettings;
   private entitlementOwner: object | null = null;
   private openActivation: (() => void) | null = null;
@@ -85,6 +95,12 @@ export class CrispAnnotationsOutlineView extends ItemView {
   bindEntitlement(owner: object, openActivation?: () => void): this {
     this.entitlementOwner = owner;
     this.openActivation = openActivation ?? null;
+    return this;
+  }
+
+  /** The drafts tab appears only while a host is bound. */
+  bindDrafts(host: OutlineDraftHost): this {
+    this.draftHost = host;
     return this;
   }
 
@@ -206,10 +222,13 @@ export class CrispAnnotationsOutlineView extends ItemView {
     const scope = container.createDiv({
       cls: "crisp-ann-outline-scope",
     });
-    for (const option of [
+    const options: { value: OutlineScope; label: string }[] = [
       { value: "current", label: "当前文档" },
       { value: "vault", label: "整个仓库" },
-    ] as const) {
+    ];
+    if (this.draftHost) options.push({ value: "drafts", label: "草稿" });
+    if (!this.draftHost && this.outlineScope === "drafts") this.outlineScope = "current";
+    for (const option of options) {
       const button = scope.ownerDocument.createElement("button");
       button.type = "button";
       button.className = "crisp-ann-outline-scope__button";
@@ -227,6 +246,11 @@ export class CrispAnnotationsOutlineView extends ItemView {
 
     if (this.outlineScope === "vault") {
       this.renderVaultContent(container);
+      return;
+    }
+
+    if (this.outlineScope === "drafts") {
+      this.renderDrafts(container);
       return;
     }
 
@@ -253,6 +277,50 @@ export class CrispAnnotationsOutlineView extends ItemView {
 
     for (const annotation of this.annotations) {
       this.renderAnnotationItem(list, annotation);
+    }
+  }
+
+  private renderDrafts(container: HTMLElement): void {
+    const path = (this.sourceLeaf?.view as { file?: { path?: string } } | undefined)?.file?.path;
+    const drafts = path && this.draftHost ? [...this.draftHost.list(path)].reverse() : [];
+    if (!path || drafts.length === 0) {
+      container.createDiv({ cls: "crisp-ann-outline-empty" }).createSpan({
+        text: path ? "选中正文，右键「移入草稿」" : "打开一篇笔记后显示它的草稿",
+      });
+      return;
+    }
+    container.createDiv({ cls: "crisp-ann-outline-header" }).createSpan({ text: `草稿 (${drafts.length})` });
+    const list = container.createDiv({ cls: "crisp-ann-outline-list" });
+    for (const draft of drafts) {
+      const item = list.createDiv({ cls: "crisp-ann-draft" });
+      item.createDiv({ cls: "crisp-ann-draft__text", text: draft.text });
+      const meta = item.createDiv({ cls: "crisp-ann-draft__meta" });
+      meta.createSpan({ cls: "crisp-ann-draft__time", text: formatDraftTime(draft.createdAt) });
+      const actions = meta.createDiv({ cls: "crisp-ann-draft__actions" });
+      const removing = this.pendingDraftRemoval === draft.id;
+      for (const action of [
+        { value: "insert", label: "插回光标处", icon: "corner-down-left" },
+        { value: "copy", label: "复制", icon: "copy" },
+        { value: "remove", label: removing ? "再点一次删除" : "删除", icon: removing ? "check" : "trash-2" },
+      ] as const) {
+        const button = actions.ownerDocument.createElement("button");
+        button.type = "button";
+        button.className = `crisp-ann-draft__action crisp-ann-draft__action--${action.value}${action.value === "remove" && removing ? " is-confirming" : ""}`;
+        button.setAttribute("aria-label", action.label);
+        button.title = action.label;
+        setIcon(button, action.icon);
+        button.addEventListener("click", () => {
+          // Deleting is permanent, so it takes a second click on the same draft.
+          if (action.value === "remove" && !removing) {
+            this.pendingDraftRemoval = draft.id;
+            this.render();
+            return;
+          }
+          this.pendingDraftRemoval = null;
+          this.draftHost?.act(action.value, path, draft.id);
+        });
+        actions.appendChild(button);
+      }
     }
   }
 
@@ -544,4 +612,10 @@ export class CrispAnnotationsOutlineView extends ItemView {
 
     editor.scrollIntoView({ from, to }, true);
   }
+}
+
+function formatDraftTime(time: number): string {
+  const date = new Date(time);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${date.getMonth() + 1}月${date.getDate()}日 ${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
