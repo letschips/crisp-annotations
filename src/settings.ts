@@ -5,6 +5,8 @@ import {
   type AnnotationPlace,
 } from "./annotation-syntax";
 
+import { normalizeLicenseCode } from "./license";
+
 export const ANNOTATION_FONT_MODES = [
   "handwritten",
   "body",
@@ -191,7 +193,7 @@ export function normalizeSettings(value: unknown): CrispAnnotationsSettings {
       ? candidate.recallMode
       : DEFAULT_SETTINGS.recallMode,
     licenseCode: typeof candidate.licenseCode === "string"
-      ? candidate.licenseCode.trim()
+      ? normalizeLicenseCode(candidate.licenseCode)
       : "",
   };
 }

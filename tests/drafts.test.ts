@@ -129,7 +129,7 @@ function harness(options: { storedDrafts?: unknown; failWrite?: boolean } = {}) 
     workspace: {
       activeLeaf: markdownLeaf,
       getLeavesOfType: (type: string) => type === "markdown" ? [markdownLeaf] : type === "crisp-annotations-outline-view" ? outlineLeaves : [],
-      on: () => ({}), iterateAllLeaves: () => {}, updateOptions: () => {}, getActiveViewOfType: () => null,
+      on: () => ({}), iterateAllLeaves: () => {}, onLayoutReady: () => {}, updateOptions: () => {}, getActiveViewOfType: () => null,
     },
     vault: {
       getMarkdownFiles: () => [], cachedRead: async () => "",

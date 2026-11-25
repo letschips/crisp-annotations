@@ -130,7 +130,7 @@ function createWorkspace(): TestWorkspace {
     },
     getLeaf: () => markdownLeaf,
     updateOptions: () => {},
-    iterateAllLeaves: () => {},
+    iterateAllLeaves: () => {}, onLayoutReady: () => {},
     getActiveViewOfType: () => null,
   };
   const app = {

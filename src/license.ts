@@ -64,6 +64,17 @@ export const CRISP_LICENSE_PRODUCTS = [
 ] as const;
 
 
+/**
+ * Chat apps mangle long codes when they are copied: line breaks, spaces (incl. full-width/NBSP),
+ * zero-width characters, and surrounding text such as "卡密：…。". Returns the bare code.
+ */
+export function normalizeLicenseCode(input: unknown): string {
+  if (typeof input !== "string") return "";
+  const compact = input.replace(/[\s\u200B-\u200D\u2060\uFEFF]/g, "");
+  const match = compact.match(/[A-Za-z0-9_-]{16,}\.[A-Za-z0-9_-]{16,}/);
+  return match ? match[0] : compact;
+}
+
 export function base64UrlToUint8Array(base64url: string): Uint8Array {
   const base64 = base64url.replace(/-/g, "+").replace(/_/g, "/");
   const pad = base64.length % 4;
@@ -108,7 +119,7 @@ export async function verifyLicenseCode(
   targetPluginId: string = "crisp-annotations",
   skipOnline: boolean = false
 ): Promise<LicenseVerifyResult> {
-  const trimmed = licenseCode.trim();
+  const trimmed = normalizeLicenseCode(licenseCode);
   if (!trimmed) {
     return { valid: false, reason: "授权码为空" };
   }
@@ -226,4 +237,98 @@ export async function verifyLicenseCode(
     const msg = error instanceof Error ? error.message : String(error);
     return { valid: false, reason: `解析授权码失败: ${msg}` };
   }
+}
+
+// Paid Crisp plugins that may already hold a suite code in this vault. Module constant on purpose.
+const CRISP_SIBLING_PLUGIN_IDS = [
+  "crisp-annotations", "crisp-asr", "crisp-base", "crisp-file-explorer", "crisp-focus",
+  "crisp-mind", "crisp-pets", "crisp-pulse", "crisp-reading-rail", "crisp-recall",
+  "crisp-ripple", "crisp-search", "crisp-tempo", "crisp-visual",
+] as const;
+
+interface SiblingScanApp {
+  vault?: {
+    configDir?: string;
+    adapter?: {
+      exists(path: string): Promise<boolean>;
+      read(path: string): Promise<string>;
+    };
+  };
+  plugins?: { plugins?: Record<string, { settings?: Record<string, unknown> } | undefined> };
+}
+
+/**
+ * Codes saved by sibling Crisp plugins in this vault that pass the local signature check
+ * (read-only; nothing is written). The caller must still verify each one online before using it.
+ */
+export async function discoverVaultCrispLicenses(
+  app: unknown,
+  targetPluginId: string = "crisp-annotations",
+  limit: number = 5,
+): Promise<string[]> {
+  const host = app as SiblingScanApp | null | undefined;
+  if (!host) return [];
+  const candidates: string[] = [];
+  const seen = new Set<string>();
+  const add = (code: unknown): void => {
+    const normalized = normalizeLicenseCode(code);
+    if (!normalized.includes(".") || seen.has(normalized)) return;
+    seen.add(normalized);
+    candidates.push(normalized);
+  };
+  for (const id of CRISP_SIBLING_PLUGIN_IDS) {
+    if (id === targetPluginId) continue;
+    const settings = host.plugins?.plugins?.[id]?.settings;
+    add(settings?.licenseCode);
+    add(settings?.licenseKey);
+  }
+  const adapter = host.vault?.adapter;
+  const configDir = host.vault?.configDir;
+  if (adapter && configDir) {
+    for (const id of CRISP_SIBLING_PLUGIN_IDS) {
+      if (id === targetPluginId) continue;
+      try {
+        const path = `${configDir}/plugins/${id}/data.json`;
+        if (!(await adapter.exists(path))) continue;
+        const data = JSON.parse(await adapter.read(path)) as Record<string, unknown> | null;
+        add(data?.licenseCode || data?.licenseKey || data?.license);
+      } catch {
+        // A missing or unreadable sibling file is simply skipped.
+      }
+    }
+  }
+  const valid: string[] = [];
+  for (const code of candidates) {
+    if (valid.length >= limit) break;
+    if ((await verifyLicenseCode(code, targetPluginId, true)).valid) valid.push(code);
+  }
+  return valid;
+}
+
+/**
+ * Tries sibling codes one by one; the first that passes the online check is handed to `accept`
+ * (which saves it and applies it through the plugin's own gate). Stops as soon as the plugin's own
+ * code changed or the plugin was unloaded. Returns true when a code was accepted.
+ */
+export async function inheritSiblingLicense(
+  app: unknown,
+  hooks: {
+    targetPluginId?: string;
+    currentCode(): string;
+    aborted(): boolean;
+    accept(code: string, result: LicenseVerifyResult): Promise<void>;
+  },
+): Promise<boolean> {
+  const target = hooks.targetPluginId ?? "crisp-annotations";
+  const startCode = hooks.currentCode();
+  const candidates = (await discoverVaultCrispLicenses(app, target)).filter((candidate) => candidate !== startCode);
+  for (const candidate of candidates) {
+    if (hooks.aborted() || hooks.currentCode() !== startCode) return false;
+    const result = await verifyLicenseCode(candidate, target);
+    if (hooks.aborted() || hooks.currentCode() !== startCode) return false;
+    if (!result.valid) continue;
+    await hooks.accept(candidate, result);
+    return true;
+  }
+  return false;
 }

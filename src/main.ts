@@ -56,7 +56,7 @@ import {
   type OutlineDraftHost,
   type OutlineAnnotationContext,
 } from "./outline-view";
-import { verifyLicenseCode, type LicenseVerifyResult } from "./license";
+import { inheritSiblingLicense, normalizeLicenseCode, verifyLicenseCode, type LicenseVerifyResult } from "./license";
 import { annotationsEntitled, applyEntitlement, onEntitlementChange } from "./entitlement";
 
 // Every gate calls this module function, not a method that could be replaced on the instance.
@@ -150,6 +150,8 @@ export default class CrispAnnotationsPlugin extends Plugin {
   }
   settings: CrispAnnotationsSettings = { ...DEFAULT_SETTINGS };
   private readonly appearanceDocuments = new Set<Document>();
+  private ownLicenseCheck: Promise<LicenseVerifyResult | null> | null = null;
+  private unloaded = false;
   private readonly marginLayout = new MarginLayoutManager(() => this.settings);
   private lastMarkdownLeaf: WorkspaceLeaf | null = null;
   private outlineRefreshTimer: ReturnType<typeof setTimeout> | null = null;
@@ -170,9 +172,13 @@ export default class CrispAnnotationsPlugin extends Plugin {
     if (this.settings.licenseCode) {
       // Local signature check first so notes render unlocked at once; the device check follows.
       applyEntitlement(this, await verifyLicenseCode(this.settings.licenseCode, "crisp-annotations", true));
-      void verifyLicenseCode(this.settings.licenseCode, "crisp-annotations")
-        .then((result) => applyEntitlement(this, result));
+      this.ownLicenseCheck = verifyLicenseCode(this.settings.licenseCode, "crisp-annotations")
+        .then((result) => {
+          if (!this.unloaded) applyEntitlement(this, result);
+          return result;
+        }, () => null);
     }
+    this.app.workspace.onLayoutReady(() => { void this.inheritSiblingLicense(); });
     this.vaultAnnotationIndex = new VaultAnnotationIndex(async (file) => {
       const vaultFile = this.app.vault.getFileByPath(file.path);
       if (!vaultFile) {
@@ -438,6 +444,7 @@ export default class CrispAnnotationsPlugin extends Plugin {
   }
 
   onunload(): void {
+    this.unloaded = true;
     this.cancelOutlineRefresh();
     this.marginLayout.destroy();
     for (const cancel of this.readingSyncFrames.values()) {
@@ -770,9 +777,32 @@ export default class CrispAnnotationsPlugin extends Plugin {
 
   /** Verifies the saved code online and applies the result; used by the settings tab. */
   async activateLicense(): Promise<LicenseVerifyResult> {
-    const result = await verifyLicenseCode(this.settings.licenseCode, "crisp-annotations");
+    const code = normalizeLicenseCode(this.settings.licenseCode);
+    if (code !== this.settings.licenseCode) {
+      this.settings.licenseCode = code;
+      await this.saveSettings();
+    }
+    const result = await verifyLicenseCode(code, "crisp-annotations");
     applyEntitlement(this, result);
     return result;
+  }
+
+  /**
+   * Once after layout: when this plugin has no working code, take the first one a sibling Crisp
+   * plugin holds that also passes the online check. It goes through the same verify + gate as a typed code.
+   */
+  private async inheritSiblingLicense(): Promise<void> {
+    const own = await this.ownLicenseCheck;
+    if (this.unloaded || own?.valid) return;
+    await inheritSiblingLicense(this.app, {
+      currentCode: () => this.settings.licenseCode,
+      aborted: () => this.unloaded,
+      accept: async (code, result) => {
+        this.settings.licenseCode = code;
+        await this.saveSettings();
+        applyEntitlement(this, result);
+      },
+    });
   }
 
   openLicenseSettings(): void {
@@ -1502,7 +1532,7 @@ class CrispAnnotationsSettingTab extends PluginSettingTab {
         .setPlaceholder("粘贴 Crisp 授权码...")
         .setValue(this.plugin.settings.licenseCode)
         .onChange(async (value) => {
-          this.plugin.settings.licenseCode = value.trim();
+          this.plugin.settings.licenseCode = normalizeLicenseCode(value);
           await this.plugin.saveSettings();
         }))
       .addButton((button) => button
