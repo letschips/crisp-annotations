@@ -68,6 +68,16 @@ async function main() {
     await cp(source, resolve(destination, directory), { recursive: true });
     copied.push(`${directory}/`);
   }
+  // 安装目录里已有的说明和版本表跟着刷新，免得留着旧版本；没有的不新增
+  for (const extra of ["README.md", "package.json", "versions.json"]) {
+    const target = resolve(destination, extra);
+    try {
+      await stat(target);
+      await copyFile(resolve(projectRoot, extra), target);
+    } catch {
+      // 安装目录或源码里没有这个文件：跳过
+    }
+  }
   console.log(`Deployed ${manifest.name} ${manifest.version} to ${destination}`);
   console.log(`Copied: ${copied.join(", ")}`);
 }
