@@ -127,6 +127,18 @@ test('inherit: loaded sibling settings are read too, own plugin id is skipped', 
   assert.deepEqual([...found], [code]);
 });
 
+// Crisp Pulse keeps its code under `settings`; Pets and Days keep theirs under `options`.
+test("inherit: Pulse's nested settings on disk and a loaded sibling's options are read", async () => {
+  const { api } = load();
+  const a = makeCode({ licenseId: 'PULSE' });
+  const b = makeCode({ licenseId: 'TEST-B' });
+  const loaded = {};
+  const app = fakeApp({ '.cfg/plugins/crisp-pulse/data.json': JSON.stringify({ settings: { licenseCode: a } }) }, loaded);
+  assert.deepEqual([...(await api.discoverVaultCrispLicenses(app, id))], [a]);
+  loaded['crisp-focus'] = { options: { licenseCode: b } };
+  assert.deepEqual([...(await api.discoverVaultCrispLicenses(app, id))], [b, a]);
+});
+
 test('inherit: sibling code denied online -> nothing accepted', async () => {
   const code = makeCode();
   const { api } = load(new Set([code]));
